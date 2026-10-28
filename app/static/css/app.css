@@ -1341,10 +1341,10 @@ dialog::backdrop { background: rgba(4, 14, 10, .72); }
   TV layout must follow available height: всё табло помещается в один экран,
   размеры шрифтов считаются от высоты окна, чтобы табло читалось с другого конца комнаты.
 */
-body:has(.display) .global-nav { opacity: 0; transition: opacity .3s; }
-body:has(.display) .global-nav:hover, body:has(.display) .global-nav:focus-within { opacity: 1; }
-body:has(.display) .page-shell { width: 100%; max-width: none; padding: 0; }
-body:has(.display)::before { opacity: .35; }
+body.is-board .global-nav { opacity: 0; transition: opacity .3s; }
+body.is-board .global-nav:hover, body.is-board .global-nav:focus-within { opacity: 1; }
+body.is-board .page-shell { width: 100%; max-width: none; padding: 0; }
+body.is-board::before { opacity: .35; }
 
 .display {
   --display-pad: clamp(18px, 3.2vh, 44px);
