@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card chip-form-page" id="chip-form-page" data-chip-set-id="{{ chip_set_id or '' }}">
+  <header class="chip-form-header">
+    <p class="eyebrow">{% if chip_set_id %}Редактирование{% else %}Новый набор{% endif %}</p>
+    <h1>{% if chip_set_id %}Изменить набор фишек{% else %}Создать набор фишек{% endif %}</h1>
+    <p>Количество означает все физические фишки этого номинала в наборе.</p>
+  </header>
+  <p class="error" id="chip-form-error" aria-live="polite"></p>
+  <form id="chip-set-form" novalidate>
+    <section class="chip-form-section">
+      <label class="chip-name-field">Название
+        <input id="chip-set-name" name="name" type="text" maxlength="160" autocomplete="off" required autofocus placeholder="Например, Основной набор">
+      </label>
+      <label class="chip-default-toggle">
+        <input id="chip-set-default" name="is_default" type="checkbox">
+        <span>Набор по умолчанию</span>
+        <small>Одновременно выбран только один набор. Выбор можно изменить позже.</small>
+      </label>
+    </section>
+    <section class="chip-form-section">
+      <div class="chip-denomination-heading">
+        <div><h2>Номиналы</h2><p>Турнирные очки, не денежная стоимость.</p></div>
+        <button id="add-denomination" type="button" class="secondary-action">＋ Добавить номинал</button>
+      </div>
+      <div class="chip-denomination-labels" aria-hidden="true"><span>Номинал</span><span>Количество</span><span></span></div>
+      <div id="chip-denomination-list" class="chip-denomination-editor"></div>
+    </section>
+    <section class="chip-live-summary" aria-label="Сводка набора">
+      <div><span>Фишек</span><strong id="chip-total-count">0</strong></div>
+      <div><span>Общая стоимость</span><strong id="chip-total-value">0</strong></div>
+    </section>
+    <div class="chip-form-actions">
+      <a href="/chips" class="chip-cancel-link">Отмена</a>
+      <button id="save-chip-set" type="submit">Сохранить набор</button>
+    </div>
+  </form>
+</section>
+<script type="module" src="{{ url_for('static', path='js/chip-form.js') }}?v=20260814-1"></script>
+{% endblock %}

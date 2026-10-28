@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card create-page">
+  <p class="eyebrow">Новый турнир</p>
+  <h1>Создание турнира</h1>
+  <p>Соберите турнир заранее: задайте параметры, структуру уровней и список игроков. После сохранения сразу откроется экран турнира.</p>
+  <div class="create-auto-builder">
+    <div><strong>Автоматически подобрать турнир</strong><small>Выберите наборы, игроков, re-entry, продолжительность и ante — остальные параметры подберёт Home Poker.</small></div>
+    <button id="open-auto-tournament-builder" type="button">Открыть автоконструктор</button>
+  </div>
+  <p class="error" id="error"></p>
+  <form id="new-tournament">
+    <section class="create-section">
+      <div class="create-section-heading"><h2>Основные параметры</h2><span>1</span></div>
+      <div class="create-fields">
+        <label>Название<input name="name" required autofocus></label>
+        <label id="buy-in-field">Бай-ин<input name="buy_in_amount" inputmode="numeric" value="1000" required></label>
+        <fieldset class="tournament-type-field">
+          <legend>Тип турнира</legend>
+          <label><input type="radio" name="bounty_mode" value="none" checked><span class="tournament-type-copy"><strong>Обычный</strong><small>Весь бай-ин идёт в призовой фонд</small></span></label>
+          <label><input type="radio" name="bounty_mode" value="fixed"><span class="tournament-type-copy"><strong>Bounty</strong><small>Фиксированная награда за каждый K.O.</small></span></label>
+        </fieldset>
+        <label id="bounty-field" hidden>Bounty за entry<input name="bounty_amount" inputmode="numeric" min="1" value="300"><small id="bounty-preview">700 ₽ в основной призовой фонд · 300 ₽ bounty за entry</small></label>
+        <label class="freeroll-toggle"><input name="is_freeroll" type="checkbox"><span>Фриролл</span><small>Бесплатный турнир без призового фонда</small></label>
+        <label>Стартовый стек<input name="starting_stack" inputmode="numeric" value="20000" required></label>
+        <label>Максимум re-entry на игрока<input name="max_reentries_per_player" inputmode="numeric" min="0" placeholder="без лимита"></label>
+        <label>PIN администратора<input name="pin" inputmode="numeric" minlength="4" maxlength="12" required></label>
+      </div>
+      <div id="create-payout-panel" class="payout-editor-panel">
+        <div class="payout-editor-heading"><div><strong>Призовые места</strong><small>Распределите ровно 100% призового фонда.</small></div><button id="add-payout-place" type="button" class="secondary-action">Добавить место</button></div>
+        <div id="create-payout-list" class="payout-editor-list"></div>
+        <div class="payout-editor-total"><span>Итого</span><strong id="create-payout-total">100%</strong></div>
+        <p id="create-payout-error" class="error" aria-live="polite"></p>
+      </div>
+    </section>
+    <section class="create-section">
+      <div class="create-section-heading"><h2>Структура уровней</h2><span>2</span></div>
+      <div class="create-structure-generator">
+        <div><strong>Автоматическая структура</strong><small id="create-structure-generator-summary">Подберите темп под целевую продолжительность, затем при необходимости отредактируйте уровни вручную.</small></div>
+        <button id="open-structure-generator" type="button" class="secondary-action">Сгенерировать структуру</button>
+      </div>
+      <label>Типовая основа<select name="preset" id="preset"><option value="fast">Быстрая</option><option value="standard" selected>Обычная</option><option value="deep">Глубокая</option></select></label>
+      <p class="create-hint">Выберите основу, затем настройте структуру: перетаскивайте строки за ручку мышью или используйте стрелки ↑/↓ на телефоне.</p>
+      <label class="structure-toggle"><input id="no-ante" type="checkbox"><span>Турнир без анте</span><small>Анте будет отключено на всех игровых уровнях.</small></label>
+      <div class="late-registration-panel"><strong>Поздняя регистрация</strong><label>Заканчивается после уровня №<input id="late-registration-end" type="number" min="1" inputmode="numeric" placeholder="например, 3" required></label><small>Обязательное поле. Если сразу после указанного уровня идёт перерыв, входы доступны до его конца. Затем добавление игрока и re-entry потребуют подтверждения.</small></div>
+      <div class="structure-builder-toolbar"><div><strong>Конструктор уровней</strong><small>Уровни и перерывы можно менять местами.</small></div><div class="structure-actions"><button id="add-play" type="button">＋ Уровень</button><button id="add-break" type="button">＋ Перерыв</button></div></div>
+      <div class="level-builder-header" aria-hidden="true"><span>№</span><span>Минуты</span><span>SB</span><span>BB</span><span>Ante</span><span>Действия</span></div>
+      <div id="create-level-editor" class="level-builder"></div>
+      <div class="structure-summary"><span>Всего элементов: <b id="level-count">0</b></span><span>Общая длительность: <b id="structure-total">00:00</b></span></div>
+      <div id="auto-draft-diagnostics" class="auto-draft-diagnostics" hidden aria-live="polite"></div>
+    </section>
+    <section class="create-section">
+      <div class="create-section-heading"><h2>Игроки</h2><span>3</span></div>
+      <p class="create-hint">Добавьте участников заранее. В админке их можно будет отмечать как вылетевших, делать re-entry и фиксировать аут.</p>
+      <div class="create-player-add"><input id="player-name" type="text" maxlength="120" placeholder="Имя игрока"><button id="add-player" type="button" class="secondary-action">Добавить игрока</button></div>
+      <div id="create-player-list" class="create-player-list"><p class="create-empty">Игроки пока не добавлены.</p></div>
+      <div class="create-stack-plan">
+        <div><strong>План фишек</strong><small id="create-chip-plan-summary">План не выбран. Inventory не резервируется.</small></div>
+        <button id="open-stack-optimizer" type="button" class="secondary-action">Подобрать фишки</button>
+      </div>
+    </section>
+    <input type="hidden" name="currency_label" value="₽">
+    <button class="create-submit">Создать турнир и открыть экран</button>
+  </form>
+  <dialog id="create-auto-tournament-builder" class="auto-builder-dialog">
+    {% include "_auto_tournament_builder.html" %}
+  </dialog>
+  <dialog id="create-stack-optimizer" class="stack-optimizer-dialog">
+    {% set optimizer_auto = false %}
+    {% set optimizer_dialog = true %}
+    {% include "_stack_optimizer.html" %}
+  </dialog>
+  <dialog id="create-structure-generator" class="structure-generator-dialog">
+    {% set generator_auto = false %}
+    {% set generator_dialog = true %}
+    {% include "_structure_generator.html" %}
+  </dialog>
+</section>
+<script type="module" src="{{ url_for('static', path='js/create.js') }}?v=20260816-4"></script>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card chip-inventory-page">
+  <header class="chip-page-header">
+    <div>
+      <p class="eyebrow">Инвентарь</p>
+      <h1>Фишки</h1>
+      <p>Сохраните физические наборы и количество фишек каждого номинала.</p>
+    </div>
+    <div class="chip-page-actions">
+      <a class="secondary" href="/stack-optimizer">Конструктор стеков</a>
+      <a class="chip-primary-link" href="/chips/new">Создать набор</a>
+    </div>
+  </header>
+  <p class="error" id="chip-list-error" aria-live="polite"></p>
+  <div id="chip-set-list" class="chip-set-list" aria-live="polite">
+    <p class="chip-loading">Загружаю наборы…</p>
+  </div>
+</section>
+<script type="module" src="{{ url_for('static', path='js/chips.js') }}?v=20260814-1"></script>
+{% endblock %}

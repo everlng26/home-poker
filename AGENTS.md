@@ -1,0 +1,27 @@
+# Инструкции для coding agents
+
+- Поддерживайте FastAPI + SQLite + SQLAlchemy 2 + Alembic + Jinja2 + ES-модули; не добавляйте Node.js, облачные сервисы или Docker без отдельного согласования.
+- Целевые платформы: macOS (Intel и Apple Silicon) и Safari на iPhone.
+- Не размещайте бизнес-правила в шаблонах, JavaScript или route handlers.
+- Все времена хранятся в UTC.
+- Таймер хранится и рассчитывается сервером.
+- Автопереход уровня выполняется серверной lifespan-задачей; не переносите его в JavaScript.
+- Дублирующая регистрация участника запрещена; re-entry разрешён только после вылета и фиксируется в журнале.
+- История событий не удаляется: отмена создаёт компенсирующее событие.
+- Опасные действия в мобильном интерфейсе подтверждаются собственным модальным окном, а не `alert`, `prompt` или `confirm` браузера.
+- После каждого изменения запускайте тесты, обновляйте документацию и не оставляйте обязательные TODO.
+- Не скрывайте ошибки пустым `except`, не выводите PIN, cookie или секреты в логи.
+- Не меняйте бизнес-инварианты без теста.
+- Денежные значения остаются целыми единицами валюты; проценты выплат хранятся в basis points и обязаны составлять 10 000.
+- Main prize pool, bounty pool и выплаты рассчитываются только из существующего `entries_count`, `buy_in_amount` и Fixed Bounty split; не создавайте параллельные счётчики.
+- Bubble/ITM определяются сервером только после сохранённой финализации регистрации; клиентские флаги для этих состояний запрещены.
+- Fixed Bounty K.O., bounty winnings и K.O. Leader выводятся из действительных elimination/champion events с учётом reversal; mutable counters и клиентские флаги запрещены.
+- `bounty_amount_awarded` сохраняется snapshot-значением в событии. Surviving bounty чемпиона является отдельной идемпотентной выплатой и не увеличивает K.O.
+- Для создания турнира и замены структуры обязателен существующий игровой уровень окончания поздней регистрации; nullable-колонка сохраняется только для совместимости со старыми базами.
+- Chip Inventory описывает независимые физические наборы: `quantity` не уменьшается во время турнира и не заменяется available/reserved/in-play счётчиками.
+- `total_chips` и `total_value` набора выводятся только из его denominations; одновременно может существовать не более одного optional default-набора.
+- Starting Stack Optimizer трактует `max_reentries_per_player` только как лимит на одного игрока: максимум дополнительных entries равен `planned_players × max_reentries_per_player`; partial coverage не является ошибкой initial solve.
+- Tournament Chip Plan является историческим snapshot без складского резервирования: изменение или удаление исходного ChipSet не меняет план и никогда не уменьшает `quantity`.
+- Tournament Structure Generator выдаёт только существующие BlindLevel/Break rows; после Apply структура является обычным snapshot без live dependency на planner inputs или версию алгоритма.
+- `expected_reentries` генератора — planner-only предположение для planned chip volume: оно не заменяет и не изменяет `max_reentries_per_player`, а target/finish window всегда остаются heuristic, не гарантией времени окончания.
+- Auto Tournament Builder только оркестрирует существующие Stack Optimizer и Structure Generator; его Apply создает обычный editable draft, diagnostics не меняют rows, а regeneration после ручных правок требует явного подтверждения.

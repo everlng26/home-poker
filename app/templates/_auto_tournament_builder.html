@@ -1,0 +1,21 @@
+<section class="auto-tournament-builder" data-auto-tournament-builder>
+  <header class="auto-builder-heading">
+    <div><p class="eyebrow">Auto Tournament Builder</p><h2>Автоматически подобрать турнир</h2></div>
+    <button type="button" class="secondary-action auto-builder-close" data-action="close">Закрыть</button>
+  </header>
+  <p class="auto-builder-intro">Выберите физические наборы и задайте только формат игры. Starting stack, первый уровень, темп, BB Ante и перерывы подберёт сервер.</p>
+  <section class="auto-builder-block">
+    <div class="auto-builder-block-heading"><strong>Физические наборы</strong><small>Default-набор выбран заранее; можно объединить несколько.</small></div>
+    <div class="auto-builder-chip-sets" data-role="chip-sets"><p class="create-empty">Загружаю наборы…</p></div>
+  </section>
+  <section class="auto-builder-inputs">
+    <label>Игроки<input data-field="players" type="number" min="1" inputmode="numeric" value="8" required></label>
+    <label>Максимум re-entry на игрока<input data-field="max_reentries_per_player" type="number" min="0" inputmode="numeric" value="2" required></label>
+    <label>Целевая продолжительность, минут<input data-field="target_duration_minutes" type="number" min="1" inputmode="numeric" value="300" required></label>
+    <label>Анте<select data-field="ante_mode"><option value="big_blind" selected>BB Ante</option><option value="none">Без ante</option></select></label>
+  </section>
+  <button type="button" class="auto-builder-generate" data-action="generate">Сгенерировать турнир</button>
+  <p class="error" data-role="error" aria-live="polite"></p>
+  <p class="auto-builder-forecast" data-role="forecast" hidden></p>
+  <section class="auto-builder-candidates" data-role="candidates"></section>
+</section>
