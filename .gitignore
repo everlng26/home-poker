@@ -18,3 +18,8 @@ logs/
 .idea/
 .vscode/
 
+
+# Сборка приложения macOS
+.venv-build/
+build/
+dist/

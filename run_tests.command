@@ -9,6 +9,6 @@ fi
 echo "Запускаю тесты…"
 .venv/bin/python -m pytest
 echo "Проверяю стиль кода…"
-.venv/bin/python -m ruff check app tests scripts
+.venv/bin/python -m ruff check app tests scripts desktop packaging
 echo "Все автоматические проверки успешно завершены."
 

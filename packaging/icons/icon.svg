@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Исходник иконки приложения: make_icons.sh собирает из него AppIcon.icns. -->
+  <defs>
+    <linearGradient id="felt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b4a36"/>
+      <stop offset="1" stop-color="#113526"/>
+    </linearGradient>
+    <clipPath id="chip"><circle cx="512" cy="512" r="283"/></clipPath>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#felt)" filter="url(#shadow)"/>
+  <circle cx="512" cy="512" r="283" fill="#f2c14e"/>
+  <g fill="#fbf6e9" clip-path="url(#chip)">
+    <rect x="462" y="229" width="100" height="92" rx="20" transform="rotate(0 512 512)"/>
+    <rect x="462" y="229" width="100" height="92" rx="20" transform="rotate(60 512 512)"/>
+    <rect x="462" y="229" width="100" height="92" rx="20" transform="rotate(120 512 512)"/>
+    <rect x="462" y="229" width="100" height="92" rx="20" transform="rotate(180 512 512)"/>
+    <rect x="462" y="229" width="100" height="92" rx="20" transform="rotate(240 512 512)"/>
+    <rect x="462" y="229" width="100" height="92" rx="20" transform="rotate(300 512 512)"/>
+  </g>
+  <circle cx="512" cy="512" r="160" fill="none" stroke="#16422f" stroke-opacity=".45" stroke-width="24"/>
+</svg>

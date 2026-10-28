@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import Engine, create_engine, event, text
@@ -63,3 +64,19 @@ def sqlite_backup(source: Path, destination: Path) -> None:
     with sqlite3.connect(source) as source_connection, sqlite3.connect(destination) as destination_connection:
         source_connection.backup(destination_connection)
 
+
+def create_backup(active_settings: Settings | None = None) -> Path | None:
+    """Копирует рабочую базу в папку резервных копий; None, если базы ещё нет."""
+    current = active_settings or get_settings()
+    source = current.data_dir / "poker.db"
+    if not source.exists():
+        return None
+    current.backups_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d-%H%M%S")
+    destination = current.backups_dir / f"poker-{timestamp}.db"
+    counter = 1
+    while destination.exists():
+        destination = current.backups_dir / f"poker-{timestamp}-{counter}.db"
+        counter += 1
+    sqlite_backup(source, destination)
+    return destination

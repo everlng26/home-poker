@@ -2,6 +2,7 @@
 
 - Поддерживайте FastAPI + SQLite + SQLAlchemy 2 + Alembic + Jinja2 + ES-модули; не добавляйте Node.js, облачные сервисы или Docker без отдельного согласования.
 - Целевые платформы: macOS (Intel и Apple Silicon) и Safari на iPhone.
+- Приложение macOS (`desktop/`, `packaging/`) только запускает тот же сервер с окном управления: бизнес-правила туда не переносятся, PyInstaller и pywebview остаются зависимостями сборки (`packaging/requirements-build.txt`), а не сервера.
 - Не размещайте бизнес-правила в шаблонах, JavaScript или route handlers.
 - Все времена хранятся в UTC.
 - Таймер хранится и рассчитывается сервером.
