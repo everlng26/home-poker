@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Домашний покер</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <style>
+    /* Окно управления приложения macOS: только статус сервера и ссылки, турнир живёт в браузере. */
+    body { overflow: hidden; -webkit-user-select: none; user-select: none; cursor: default; }
+    .desktop { position: relative; z-index: 1; display: grid; gap: 22px; padding: 28px 28px 24px; }
+    .desktop-brand { display: flex; align-items: center; gap: 14px; }
+    .desktop-brand img { width: 52px; height: 52px; }
+    .desktop-brand h1 { font-size: 2.3rem; }
+    .desktop-status { display: flex; align-items: center; gap: 10px; color: var(--paper-2); }
+    .desktop-status .pill { border-color: rgba(242, 193, 78, .55); color: var(--gold); }
+    .desktop-open { width: 100%; min-height: 54px; font-size: 1.1rem; }
+    .desktop-phone { display: grid; gap: 6px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .desktop-phone h2 { font-size: 1.5rem; }
+    .desktop-phone p { color: var(--paper-2); }
+    .desktop-address { color: var(--paper); font-family: var(--font-num); font-size: 1.7rem; font-weight: 700; -webkit-user-select: text; user-select: text; }
+    .desktop-hint { color: var(--paper-3); font-size: .92rem; }
+    .desktop-data { justify-self: start; min-height: 36px; padding: 6px 0; border: 0; background: transparent; color: var(--paper-2); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+    .desktop-data:hover { background: transparent; color: var(--paper); }
+  </style>
+</head>
+<body>
+  <main class="desktop">
+    <div class="desktop-brand"><img src="/static/img/icon.svg" alt=""><h1>Домашний покер</h1></div>
+    <p class="desktop-status"><span class="pill">Сервер работает</span><span>Mac не уснёт, пока окно открыто</span></p>
+    <button class="desktop-open" id="open" type="button">Открыть турниры в браузере</button>
+    <section class="desktop-phone">
+      <h2>С телефона</h2>
+      <p>Подключите телефон к той же Wi-Fi и отсканируйте QR-код на табло или откройте адрес:</p>
+      <p class="desktop-address" id="address">ищу адрес в сети…</p>
+    </section>
+    <p class="desktop-hint">Закройте это окно, чтобы остановить сервер. Турниры, игроки и таймер сохранятся.</p>
+    <button class="desktop-data" id="data" type="button">Папка с данными</button>
+  </main>
+  <script>
+    const api = () => window.pywebview?.api;
+    document.querySelector('#open').addEventListener('click', () => api()?.open_in_browser('/'));
+    document.querySelector('#data').addEventListener('click', () => api()?.open_data_folder());
+    window.addEventListener('pywebviewready', async () => {
+      document.querySelector('#data').title = await api().data_folder();
+    });
+    fetch('/api/v1/network')
+      .then(response => response.json())
+      .then(network => {
+        const url = network.addresses?.[0]?.url || network.mdns_url;
+        document.querySelector('#address').textContent = url || 'не нашёл подключение к Wi-Fi';
+      })
+      .catch(() => { document.querySelector('#address').textContent = 'адрес не определился'; });
+  </script>
+</body>
+</html>

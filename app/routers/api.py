@@ -63,7 +63,7 @@ def admin_tournament_id(request: Request) -> int:
 
 @router.get("/tournaments")
 def tournaments(session: Session = Depends(get_session)) -> list[dict[str, Any]]:
-    return [{"id": item.id, "name": item.name, "status": item.status.value} for item in session.scalars(select(Tournament).order_by(Tournament.id.desc()))]
+    return TournamentService.list_summaries(session)
 
 
 @router.get("/chip-sets")
@@ -286,6 +286,13 @@ def login(tournament_id: int, payload: dict[str, Any], request: Request, respons
     response.set_cookie("poker_admin", sign_session(tournament_id, request.app.state.app_secret), httponly=True, samesite="lax")
     response.set_cookie("poker_csrf", secrets.token_urlsafe(24), httponly=False, samesite="lax")
     return {"ok": True}
+
+
+@router.get("/tournaments/{tournament_id}/session")
+def admin_session(tournament_id: int, request: Request) -> dict[str, bool]:
+    """Сообщает, вошёл ли этот браузер в админку турнира; сам PIN и cookie не раскрываются."""
+    active_tournament_id = read_session(request.cookies.get("poker_admin"), request.app.state.app_secret)
+    return {"authenticated": active_tournament_id == tournament_id}
 
 
 @router.post("/tournaments/{tournament_id}/players")

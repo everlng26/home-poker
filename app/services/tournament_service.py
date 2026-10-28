@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from typing import Any
 
-from app.models.enums import TimerStatus, TournamentPlayerStatus, TournamentStatus
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, selectinload
+
+from app.models.enums import BlindLevelKind, BountyMode, TimerStatus, TournamentPlayerStatus, TournamentStatus
 from app.models.tournament import Tournament, TournamentPlayer
 from app.security import verify_pin
 from app.services.errors import DomainError
@@ -13,6 +15,43 @@ from app.services.payout_service import PayoutService
 
 
 class TournamentService:
+    @staticmethod
+    def list_summaries(session: Session) -> list[dict[str, Any]]:
+        """Короткая сводка по каждому турниру для главной страницы: только чтение."""
+        tournaments = session.scalars(
+            select(Tournament)
+            .options(selectinload(Tournament.players), selectinload(Tournament.levels))
+            .order_by(Tournament.id.desc())
+        ).all()
+        summaries = []
+        for tournament in tournaments:
+            levels = sorted(tournament.levels, key=lambda level: level.order_index)
+            current = next((level for level in levels if level.order_index == tournament.current_level_index), None)
+            current_number = None
+            if current is not None and current.kind == BlindLevelKind.PLAY:
+                current_number = sum(
+                    1 for level in levels if level.kind == BlindLevelKind.PLAY and level.order_index <= current.order_index
+                )
+            summaries.append(
+                {
+                    "id": tournament.id,
+                    "name": tournament.name,
+                    "status": tournament.status.value,
+                    "timer_status": tournament.timer_status.value,
+                    "buy_in_amount": tournament.buy_in_amount,
+                    "currency_label": tournament.currency_label,
+                    "is_freeroll": tournament.buy_in_amount == 0,
+                    "bounty_mode": tournament.bounty_mode.value,
+                    "bounty_amount": tournament.bounty_amount if tournament.bounty_mode == BountyMode.FIXED else 0,
+                    "registered_players": len(tournament.players),
+                    "active_players": sum(entry.status == TournamentPlayerStatus.ACTIVE for entry in tournament.players),
+                    "current_level_kind": current.kind.value if current is not None else None,
+                    "current_level_number": current_number,
+                    "created_at": tournament.created_at.isoformat(),
+                }
+            )
+        return summaries
+
     @staticmethod
     def finish_manually(session: Session, tournament_id: int, pin: str) -> Tournament:
         """Окончательно завершает турнир по команде администратора."""

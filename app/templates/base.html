@@ -3,11 +3,22 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>{{ page_title }} — Домашний покер</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}?v=20260816-3">
+    <meta name="theme-color" content="#0f2f22">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Покер">
+    <title>{% if page_title and page_title != "Домашний покер" %}{{ page_title }} · {% endif %}Домашний покер</title>
+    <link rel="icon" href="{{ url_for('static', path='img/icon.svg') }}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{ url_for('static', path='img/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}">
+    <link rel="preload" href="{{ url_for('static', path='fonts/sofia-sans-cyrillic.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', path='fonts/sofia-sans-extra-condensed-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}?v=20261028-1">
   </head>
-  <body>
-    <nav class="global-nav" aria-label="Навигация"><a href="/" title="На главную" aria-label="На главную"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8v9.2a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1z"/></svg><span class="sr-only">Домой</span></a></nav>
+  <body class="{% block body_class %}{% endblock %}">
+    {% include "_icons.svg" %}
+    <nav class="global-nav" aria-label="Навигация"><a href="/" title="На главную"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg><span class="sr-only">Домой</span></a></nav>
     <main class="page-shell">{% block content %}{% endblock %}</main>
   </body>
 </html>

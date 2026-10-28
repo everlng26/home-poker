@@ -57,7 +57,7 @@ export function initStructureGenerator(root, options = {}) {
     const denominations = fields.chip_denominations.value.trim();
     chipContext.textContent = denominations
       ? 'Структура будет проверена по указанным физическим номиналам.'
-      : 'Без номиналов используется универсальная poker-friendly ladder.';
+      : 'Без номиналов используется стандартная лестница блайндов.';
   }
 
   function updateConditionalFields() {

@@ -1,4 +1,4 @@
-import {openDialog, showNotice} from './dialog.js?v=20260811-2';
+import {openDialog, showNotice} from './dialog.js?v=20261028-1';
 
 const list = document.querySelector('#chip-set-list');
 const errorLine = document.querySelector('#chip-list-error');
@@ -30,7 +30,7 @@ function renderEmpty() {
   const title = document.createElement('h2');
   title.textContent = 'Наборов фишек пока нет';
   const copy = document.createElement('p');
-  copy.textContent = 'Добавьте первый физический набор и укажите, сколько фишек каждого номинала в нём лежит.';
+  copy.textContent = 'Добавьте набор, который лежит у вас дома, и укажите, сколько в нём фишек каждого номинала.';
   const action = document.createElement('a');
   action.href = '/chips/new';
   action.textContent = 'Создать первый набор';

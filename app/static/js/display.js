@@ -17,6 +17,7 @@ let eventPopupTransitionTimer;
 let eventPopupAnimationFrame;
 let eventPopupVisible = false;
 let finishCelebrationPending = false;
+let wakeLock = null;
 const eventPopupQueue = [];
 
 const clock = seconds => String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
@@ -120,7 +121,34 @@ function launchFinishCelebration() {
 function levelText(level) {
   if (!level) return '—';
   if (level.kind === 'break') return 'Перерыв';
-  return [level.small_blind, level.big_blind, state?.ante_enabled ? level.ante : null].filter(value => value !== null && value !== undefined).join('/');
+  return [level.small_blind, level.big_blind, state?.ante_enabled ? level.ante : null]
+    .filter(value => value !== null && value !== undefined)
+    .map(number)
+    .join(' / ');
+}
+
+function drawBlinds(level) {
+  const blinds = root.querySelector('#blinds');
+  blinds.replaceChildren();
+  if (!level) { blinds.textContent = '—'; return; }
+  if (level.kind === 'break') {
+    const next = state.levels.find(item => item.order_index > level.order_index && item.kind === 'play');
+    root.querySelector('#blinds-label').textContent = 'После перерыва';
+    level = next;
+    if (!level) { blinds.textContent = '—'; return; }
+  } else {
+    root.querySelector('#blinds-label').textContent = 'Блайнды';
+  }
+  const main = document.createElement('span');
+  main.className = 'blinds-main';
+  main.textContent = number(level.small_blind) + ' / ' + number(level.big_blind);
+  blinds.append(main);
+  if (state.ante_enabled && level.ante) {
+    const ante = document.createElement('span');
+    ante.className = 'blinds-ante';
+    ante.textContent = 'анте ' + number(level.ante);
+    blinds.append(ante);
+  }
 }
 
 function updateTimerVisual() {
@@ -129,58 +157,63 @@ function updateTimerVisual() {
   const remaining = Math.max(0, state.remaining_seconds || 0);
   const duration = Math.max(0, current?.duration_seconds || 0);
   const progress = duration ? Math.min(100, Math.max(0, (remaining / duration) * 100)) : 0;
-  root.querySelector('#timer-label').textContent = current?.kind === 'break' ? 'До конца перерыва' : 'До конца уровня';
+  const paused = state.timer_status !== 'running';
+  root.querySelector('#timer-label').textContent = state.status === 'draft'
+    ? 'турнир ещё не начат'
+    : paused ? 'пауза'
+    : current?.kind === 'break' ? 'до конца перерыва' : 'до конца уровня';
   root.querySelector('#time').textContent = clock(remaining);
   root.querySelector('#timer-progress-bar').style.width = progress + '%';
+  root.classList.toggle('is-last-minute', !paused && state.status !== 'finished' && current?.kind === 'play' && remaining <= 60);
 }
 
 function statusText() {
-  if (state.status === 'finished') return 'ТУРНИР ОКОНЧЕН';
-  if (state.current_level?.kind === 'break') return 'ПЕРЕРЫВ';
+  if (state.status === 'finished') return 'Турнир окончен';
+  if (state.current_level?.kind === 'break') return 'Перерыв';
   return null;
 }
 
 function registrationText() {
   if (state.status === 'finished') return null;
-  if (state.late_registration_phase === 'closed') return 'ИГРА НА ВЫЛЕТ';
-  if (state.late_registration_phase === 'closing') return 'ПОЗДНЯЯ РЕГИСТРАЦИЯ ЗАКАНЧИВАЕТСЯ ПОСЛЕ ЭТОГО УРОВНЯ';
-  if (state.late_registration_phase === 'next_level') return 'ПОЗДНЯЯ РЕГИСТРАЦИЯ ЗАКАНЧИВАЕТСЯ ПОСЛЕ СЛЕДУЮЩЕГО УРОВНЯ';
-  return 'ПОЗДНЯЯ РЕГИСТРАЦИЯ ИДЁТ';
+  if (state.late_registration_phase === 'closed') return 'Регистрация закрыта, игра на вылет';
+  if (state.late_registration_phase === 'closing') return 'Поздняя регистрация заканчивается после этого уровня';
+  if (state.late_registration_phase === 'next_level') return 'Поздняя регистрация заканчивается после следующего уровня';
+  return 'Поздняя регистрация открыта';
 }
 
 function publicEventText() {
   const event = state.public_latest_event;
   if (!event?.player_name) return null;
-  const playerName = event.player_name.toUpperCase();
-  if (event.type === 'player_registered') return playerName + ' ВХОДИТ В ИГРУ';
+  const playerName = event.player_name;
+  if (event.type === 'player_registered') return playerName + ' входит в игру';
   if (event.type === 'player_eliminated' && event.killer_name) {
-    return {kind: 'ko', killer: event.killer_name.toUpperCase(), eliminated: playerName};
+    return {kind: 'ko', killer: event.killer_name, eliminated: playerName};
   }
-  if (event.type === 'player_eliminated') return playerName + ' ВЫЛЕТАЕТ';
-  if (event.type === 'reentry_added') return playerName + ' ДЕЛАЕТ РЕ-ЭНТРИ';
+  if (event.type === 'player_eliminated') return playerName + ' вылетает';
+  if (event.type === 'reentry_added') return playerName + ' делает ре-энтри';
   return null;
 }
 
 function publicStageText() {
   const stage = state.public_stage;
   if (!stage) return null;
-  if (stage.type === 'three_players_left') return 'ОСТАЛОСЬ 3 ИГРОКА';
-  if (stage.type === 'heads_up') return 'ХЕДЗ-АП';
-  if (stage.type === 'winner' && stage.player_name) return 'ПОБЕДИТЕЛЬ — ' + stage.player_name.toUpperCase();
+  if (stage.type === 'three_players_left') return 'Осталось 3 игрока';
+  if (stage.type === 'heads_up') return 'Хедз-ап';
+  if (stage.type === 'winner' && stage.player_name) return 'Победитель: ' + stage.player_name;
   return null;
 }
 
 function payoutStageText() {
   if (!state.payouts?.configured || state.status === 'finished') return null;
-  if (state.payouts.stage === 'bubble') return 'БАББЛ';
-  if (state.payouts.stage === 'itm') return 'ВСЕ ОСТАВШИЕСЯ ИГРОКИ В ПРИЗАХ';
+  if (state.payouts.stage === 'bubble') return 'Баббл: следующий вылет без приза';
+  if (state.payouts.stage === 'itm') return 'Все оставшиеся игроки в призах';
   return null;
 }
 
 function winnerText() {
   const winner = state.standings?.find(player => player.place === 1);
   const winnerName = winner?.name || (state.public_stage?.type === 'winner' ? state.public_stage.player_name : null);
-  return winnerName ? 'ПОБЕДИТЕЛЬ — ' + winnerName.toUpperCase() : 'ТУРНИР ОКОНЧЕН';
+  return winnerName ? 'Победитель: ' + winnerName : 'Турнир окончен';
 }
 
 function appendTickerSequence(group, tickerItems) {
@@ -189,18 +222,19 @@ function appendTickerSequence(group, tickerItems) {
     item.className = 'ticker-item';
     if (typeof value === 'object' && value.kind === 'ko') {
       item.classList.add('ticker-ko-event');
-      item.setAttribute('aria-label', value.killer + ' выбивает ' + value.eliminated);
+      // Имена не склоняются, поэтому фраза построена так, чтобы оба имени стояли в именительном падеже.
+      item.setAttribute('aria-label', value.eliminated + ' вылетает, баунти забирает ' + value.killer);
       const badge = document.createElement('span');
       badge.className = 'ticker-ko-badge';
       badge.textContent = 'K.O.';
-      const killer = document.createElement('strong');
-      killer.textContent = value.killer;
-      const verb = document.createElement('span');
-      verb.className = 'ticker-ko-verb';
-      verb.textContent = 'выбивает';
       const eliminated = document.createElement('strong');
       eliminated.textContent = value.eliminated;
-      item.append(badge, killer, verb, eliminated);
+      const verb = document.createElement('span');
+      verb.className = 'ticker-ko-verb';
+      verb.textContent = 'вылетает, баунти забирает';
+      const killer = document.createElement('strong');
+      killer.textContent = value.killer;
+      item.append(badge, eliminated, verb, killer);
     } else {
       item.textContent = value;
     }
@@ -217,8 +251,8 @@ function drawTicker(force = false) {
   const track = root.querySelector('#display-ticker-track');
   const tickerItems = state.status === 'finished'
     ? [winnerText()]
-    : state.timer_status === 'paused'
-    ? ['ТУРНИР ПРИОСТАНОВЛЕН']
+    : state.timer_status === 'paused' && state.status !== 'draft'
+    ? ['Турнир на паузе']
     : [statusText(), registrationText(), payoutStageText(), publicStageText(), publicEventText()].filter(Boolean);
   const signature = tickerItems.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join('\u0000');
   if (!force && tickerSignature === signature && track.childElementCount === 2) return;
@@ -308,7 +342,7 @@ function drawUpcoming() {
       const marker = document.createElement('span');
       marker.className = 'upcoming-marker';
       const label = document.createElement('span');
-      label.textContent = level.kind === 'break' ? 'Перерыв' : 'Уровень ' + level.level_number;
+      label.textContent = level.kind === 'break' ? 'Перерыв' : String(level.level_number);
       const value = document.createElement('strong');
       value.textContent = level.kind === 'break' ? '' : levelText(level);
       const duration = document.createElement('small');
@@ -324,7 +358,6 @@ function drawUpcoming() {
     [...container.children].forEach(item => {
       const active = Number(item.dataset.levelIndex) === state.current_level_index;
       item.classList.toggle('current', active);
-      item.querySelector('.upcoming-marker').textContent = active ? '●' : '';
       if (active) item.setAttribute('aria-current', 'step');
       else item.removeAttribute('aria-current');
     });
@@ -336,8 +369,16 @@ function drawUpcoming() {
 
 function nextItems() {
   const current = state.levels.findIndex(level => level.order_index === state.current_level_index);
-  const next = state.levels[current + 1];
-  root.querySelector('#next-level').textContent = next ? levelText(next) : '—';
+  const onBreak = state.current_level?.kind === 'break';
+  // На перерыве крупно показан уровень после него, поэтому строкой ниже идёт следующий за ним.
+  const next = onBreak
+    ? state.levels.slice(current + 1).filter(level => level.kind === 'play')[1]
+    : state.levels[current + 1];
+  root.querySelector('#next-level-label').textContent = onBreak ? 'Затем' : 'Дальше';
+  root.querySelector('#break-time-label').textContent = onBreak ? 'До следующего перерыва' : 'До перерыва';
+  root.querySelector('#next-level').textContent = !next ? 'конец структуры'
+    : next.kind === 'break' ? 'перерыв ' + Math.round((next.duration_seconds || 0) / 60) + ' мин'
+    : levelText(next);
   const breakSeconds = secondsUntilBreak();
   root.querySelector('#break-time').textContent = breakSeconds === null ? '—' : clock(breakSeconds);
   drawUpcoming();
@@ -365,7 +406,7 @@ function newPayoutEvent(old) {
     return {
       ...event,
       player_name: event.active_players + ' ' + plural(event.active_players, 'игрок', 'игрока', 'игроков')
-        + ' · ' + event.paid_places + ' ' + plural(event.paid_places, 'призовое место', 'призовых места', 'призовых мест'),
+        + ', ' + event.paid_places + ' ' + plural(event.paid_places, 'призовое место', 'призовых места', 'призовых мест'),
     };
   }
   if (event.type === 'itm_reached') {
@@ -379,10 +420,10 @@ function publicEventPresentation(event) {
     return {label: 'K.O.', icon: 'K.O.', tone: 'ko'};
   }
   const presentations = {
-    player_registered: {label: 'Входит в игру', icon: '+', tone: 'entry'},
-    player_eliminated: {label: 'Вылетает', icon: '×', tone: 'eliminated'},
-    reentry_added: {label: 'Делает ре-энтри', icon: '↻', tone: 'reentry'},
-    late_registration_closing: {label: 'Поздняя регистрация', icon: '⌛', tone: 'registration'},
+    player_registered: {label: 'Входит в игру', icon: '#i-plus', tone: 'entry'},
+    player_eliminated: {label: 'Вылетает', icon: '#i-close', tone: 'eliminated'},
+    reentry_added: {label: 'Делает ре-энтри', icon: '#i-reentry', tone: 'reentry'},
+    late_registration_closing: {label: 'Поздняя регистрация', icon: '#i-timer', tone: 'registration'},
     bubble_reached: {label: 'Баббл', icon: '♠', tone: 'bubble'},
     itm_reached: {label: 'В призах', icon: '₽', tone: 'itm'},
   };
@@ -405,27 +446,26 @@ function showNextPublicEventPopup() {
   const popup = root.querySelector('#display-event-popup');
   eventPopupVisible = true;
   popup.dataset.tone = presentation.tone;
-  popup.querySelector('#display-event-popup-icon').textContent = presentation.icon;
+  const icon = popup.querySelector('#display-event-popup-icon');
+  if (presentation.icon.startsWith('#')) {
+    icon.innerHTML = '<svg aria-hidden="true"><use href="' + presentation.icon + '"/></svg>';
+  } else {
+    icon.textContent = presentation.icon;
+  }
   const label = popup.querySelector('#display-event-popup-label');
   const player = popup.querySelector('#display-event-popup-player');
   label.replaceChildren();
   player.replaceChildren();
   if (presentation.tone === 'ko') {
-    const bounty = document.createElement('b');
-    bounty.className = 'display-event-popup-bounty';
-    bounty.textContent = '+' + money(event.bounty_amount_awarded) + ' BOUNTY';
-    label.append(bounty);
+    label.textContent = event.player_name + ' вылетает, баунти забирает';
     const killer = document.createElement('span');
     killer.className = 'display-event-popup-ko-name';
     killer.textContent = event.killer_name;
-    const verb = document.createElement('span');
-    verb.className = 'display-event-popup-ko-verb';
-    verb.textContent = 'выбивает';
-    const eliminated = document.createElement('span');
-    eliminated.className = 'display-event-popup-ko-name';
-    eliminated.textContent = event.player_name;
-    player.append(killer, verb, eliminated);
-    player.setAttribute('aria-label', event.killer_name + ' выбивает ' + event.player_name);
+    const bounty = document.createElement('b');
+    bounty.className = 'display-event-popup-bounty';
+    bounty.textContent = '+' + money(event.bounty_amount_awarded);
+    player.append(killer, bounty);
+    player.setAttribute('aria-label', event.player_name + ' вылетает, баунти забирает ' + event.killer_name);
   } else {
     label.textContent = presentation.label;
     player.textContent = event.player_name;
@@ -554,20 +594,31 @@ function draw(next) {
   const current = state.current_level;
   const live = state.timer_status === 'running';
   root.querySelector('#name').textContent = state.name;
-  root.querySelector('#status').textContent = state.status === 'finished' ? 'ЗАВЕРШЁН' : current?.kind === 'break' && live ? 'BREAK' : live ? 'LIVE' : state.timer_status.toUpperCase();
+  root.querySelector('#status').textContent = state.status === 'finished' ? 'Завершён'
+    : state.status === 'draft' ? 'Не начат'
+    : !live ? 'Пауза'
+    : current?.kind === 'break' ? 'Перерыв' : 'Идёт';
   root.querySelector('#level').textContent = current?.kind === 'break' ? 'Перерыв' : current ? 'Уровень ' + current.level_number : 'Нет уровней';
   updateTimerVisual();
-  root.querySelector('#blinds').textContent = levelText(current);
-  root.querySelector('#active-players').textContent = number(state.metrics.active_players) + '/' + number(state.metrics.registered_players);
+  drawBlinds(current);
+  root.querySelector('#active-players').textContent = state.status === 'draft'
+    ? number(state.metrics.registered_players)
+    : number(state.metrics.active_players) + ' из ' + number(state.metrics.registered_players);
   root.querySelector('#total-entries').textContent = number(state.metrics.total_entries);
   root.querySelector('#prize-pool').textContent = money(state.metrics.prize_pool);
-  root.querySelector('#average-stack').textContent = number(state.metrics.average_stack);
+  const averageStack = root.querySelector('#average-stack');
+  averageStack.textContent = number(state.metrics.average_stack);
+  if (state.metrics.average_stack_bb) {
+    const depth = document.createElement('small');
+    depth.textContent = Math.round(state.metrics.average_stack_bb) + ' BB';
+    averageStack.append(depth);
+  }
   const koLeader = root.querySelector('#display-ko-leader');
   const showKoLeader = state.bounty_mode === 'fixed' && Boolean(state.ko_leader) && state.status !== 'finished';
   koLeader.hidden = !showKoLeader;
   if (showKoLeader) {
-    root.querySelector('#display-ko-leader-label').textContent = 'K.O. LEADER';
-    root.querySelector('#display-ko-leader-value').textContent = state.ko_leader.names[0] + ' · ' + state.ko_leader.ko_count;
+    root.querySelector('#display-ko-leader-label').textContent = 'Больше всех K.O.';
+    root.querySelector('#display-ko-leader-value').textContent = state.ko_leader.names[0] + ', ' + state.ko_leader.ko_count;
   }
   const payoutPanel = root.querySelector('#display-payouts');
   const showPayouts = !state.is_freeroll && state.payouts?.configured && state.payouts.status === 'final' && state.status !== 'finished';
@@ -592,7 +643,7 @@ function draw(next) {
     root.querySelector('#display-winner-name').textContent = winner?.name || '—';
     const finalKoLeader = root.querySelector('#display-final-ko-leader');
     finalKoLeader.hidden = state.bounty_mode !== 'fixed' || !state.ko_leader;
-    if (!finalKoLeader.hidden) finalKoLeader.textContent = 'K.O. LEADER · ' + state.ko_leader.names[0] + ' · ' + state.ko_leader.ko_count + ' K.O.';
+    if (!finalKoLeader.hidden) finalKoLeader.textContent = 'Больше всех K.O.: ' + state.ko_leader.names[0] + ', ' + state.ko_leader.ko_count;
     standings.replaceChildren();
     state.standings.forEach(player => {
       const row = document.createElement('article');
@@ -610,7 +661,7 @@ function draw(next) {
         identity.append(entries);
       }
       if (state.bounty_mode === 'fixed') {
-        const bounty = document.createElement('small'); bounty.textContent = 'K.O.: ' + player.ko_count + ' · Bounties: ' + money(player.bounty_winnings);
+        const bounty = document.createElement('small'); bounty.textContent = 'K.O.: ' + player.ko_count + ', баунти ' + money(player.bounty_winnings);
         identity.append(bounty);
       }
       row.append(place, identity);
@@ -675,6 +726,7 @@ document.addEventListener('fullscreenchange', () => {
   const active = Boolean(document.fullscreenElement);
   button.title = active ? 'Выйти из полного экрана' : 'Открыть полный экран';
   button.setAttribute('aria-label', button.title);
+  button.querySelector('use').setAttribute('href', active ? '#i-collapse' : '#i-expand');
   if (active) scheduleUpcomingAlignment(120);
 });
 
@@ -697,11 +749,25 @@ const updateDeviceTime = () => {
   const now = new Date();
   const deviceTime = root.querySelector('#device-time');
   deviceTime.dateTime = now.toISOString();
-  deviceTime.textContent = now.toLocaleTimeString([], {
+  deviceTime.textContent = now.toLocaleTimeString('ru-RU', {
     hour: '2-digit',
     minute: '2-digit',
   });
 };
+
+// Табло может работать на iPad или втором ноутбуке без caffeinate: не даём экрану погаснуть.
+async function keepScreenAwake() {
+  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible' || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (error) {
+    console.debug('Экран может погаснуть: блокировка сна недоступна.', error);
+  }
+}
+document.addEventListener('visibilitychange', keepScreenAwake);
+document.addEventListener('pointerdown', keepScreenAwake, {once: true});
+keepScreenAwake();
 
 updateDeviceTime();
 updateAudioButton();

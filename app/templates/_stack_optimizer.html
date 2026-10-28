@@ -1,9 +1,9 @@
 <section class="stack-optimizer" data-stack-optimizer{% if optimizer_auto %} data-stack-optimizer-auto{% endif %}>
   <header class="stack-optimizer-heading">
-    <div><p class="eyebrow">Chip Inventory</p><h2>Конструктор стеков</h2></div>
+    <div><h2>Конструктор стеков</h2></div>
     {% if optimizer_dialog %}<button type="button" class="secondary-action stack-optimizer-close" data-action="close">Закрыть</button>{% endif %}
   </header>
-  <p class="stack-optimizer-intro">Выберите один или несколько наборов. Номиналы объединяются только для расчёта и не изменяют сохранённый inventory.</p>
+  <p class="stack-optimizer-intro">Выберите один или несколько наборов. Номиналы объединяются только для расчёта, сами наборы не меняются.</p>
   <section class="stack-optimizer-block">
     <div class="stack-optimizer-block-heading"><strong>Наборы фишек</strong><small>Можно выбрать несколько.</small></div>
     <div class="stack-chip-set-options" data-role="chip-sets"><p class="create-empty">Загружаю наборы…</p></div>
@@ -19,7 +19,7 @@
     <label>Максимум re-entry на игрока<input data-field="max_reentries_per_player" type="number" min="0" inputmode="numeric" value="0" required></label>
     <label>Первый SB <span>необязательно</span><input data-field="first_small_blind" type="number" min="1" inputmode="numeric" placeholder="100"></label>
     <label>Первый BB <span>необязательно</span><input data-field="first_big_blind" type="number" min="1" inputmode="numeric" placeholder="200"></label>
-    <label>Первый ante <span>необязательно</span><input data-field="first_ante" type="number" min="0" inputmode="numeric" placeholder="200"></label>
+    <label>Первое анте <span>необязательно</span><input data-field="first_ante" type="number" min="0" inputmode="numeric" placeholder="200"></label>
   </section>
   <button type="button" class="stack-calculate" data-action="solve">Рассчитать</button>
   <p class="error" data-role="error" aria-live="polite"></p>

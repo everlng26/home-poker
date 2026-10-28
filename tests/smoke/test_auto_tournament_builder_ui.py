@@ -26,7 +26,7 @@ def test_auto_builder_is_optional_and_applies_to_existing_creation_editor() -> N
     assert 'id="add-break"' in page.text
     assert 'id="open-stack-optimizer"' in page.text
     assert 'id="open-structure-generator"' in page.text
-    assert "create.js?v=20260816-4" in page.text
+    assert "create.js?v=20261028-1" in page.text
 
     assert "/api/v1/auto-tournament-builder" in script.text
     assert "chipSet.is_default" in script.text

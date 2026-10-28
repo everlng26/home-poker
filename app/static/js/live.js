@@ -26,6 +26,6 @@ export function requestId() {
 }
 export async function command(url, body) {
   const response = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken()}, body: JSON.stringify({...body, request_id: requestId()}) });
-  if (!response.ok) { const data = await response.json(); const error = new Error(data.detail?.message || 'Команда не выполнена.'); error.code = data.detail?.code; throw error; }
+  if (!response.ok) { const data = await response.json().catch(() => ({})); const error = new Error(data.detail?.message || (typeof data.detail === 'string' ? data.detail : 'Команда не выполнена.')); error.code = data.detail?.code; error.status = response.status; throw error; }
   return response.json();
 }

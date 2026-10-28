@@ -36,7 +36,8 @@ Diagnostics request принимает текущие `levels`, planned players/
 ## Турниры
 
 - GET /health — состояние приложения.
-- GET, POST /api/v1/tournaments — список и создание турниров.
+- GET, POST /api/v1/tournaments — список и создание турниров. Список отдаёт для главной страницы `id`, `name`, `status`, `timer_status`, `buy_in_amount`, `currency_label`, `is_freeroll`, `bounty_mode`, `bounty_amount`, `registered_players`, `active_players`, `current_level_kind`, `current_level_number` (номер игрового уровня, на перерыве `null`) и `created_at`.
+- GET /api/v1/tournaments/{id}/session — `{"authenticated": true|false}`: вошёл ли этот браузер в админку турнира. Страница входа по нему пропускает ввод PIN, админка при `false` ведёт на ввод PIN.
 - POST /api/v1/tournaments/{id}/delete — удалить турнир после подтверждения PIN.
 - GET /api/v1/tournaments/{id}/state — полный снимок состояния.
 - POST /api/v1/tournaments/{id}/login — вход по PIN.

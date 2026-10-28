@@ -61,7 +61,11 @@ def sign_session(tournament_id: int, secret: bytes) -> str:
 def read_session(value: str | None, secret: bytes) -> int | None:
     try:
         raw = base64.urlsafe_b64decode((value or "").encode("ascii"))
-        payload, signature = raw.rsplit(b".", 1)
+        # Подпись — ровно 32 байта и сама может содержать b".", поэтому делим по длине, а не по точке.
+        signature_size = hashlib.sha256().digest_size
+        if len(raw) <= signature_size + 1 or raw[-signature_size - 1 : -signature_size] != b".":
+            return None
+        payload, signature = raw[: -signature_size - 1], raw[-signature_size:]
         if not hmac.compare_digest(signature, hmac.new(secret, payload, hashlib.sha256).digest()):
             return None
         return int(json.loads(payload)["tournament_id"])
