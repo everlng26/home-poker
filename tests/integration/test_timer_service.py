@@ -7,6 +7,7 @@ from app.models.enums import TimerStatus, TournamentPlayerStatus, TournamentStat
 from app.services import PlayerService, TournamentService
 from app.services.errors import DomainError
 from app.services.level_service import LevelService
+from app.services.setup_service import TournamentSetupService
 from app.services.state_service import tournament_state
 from app.services.timer_service import TimerService
 
@@ -31,6 +32,25 @@ def make_tournament_with_levels(session: Session):
         late_registration_end_level_index=0,
     )
     return tournament
+
+
+def test_not_started_tournament_shows_full_first_level(session: Session) -> None:
+    tournament = TournamentSetupService.create(
+        session,
+        name="Ещё не начат",
+        buy_in_amount=100,
+        currency_label="₽",
+        starting_stack=1_000,
+        admin_pin_hash="hash",
+        levels=[{"kind": "play", "small_blind": 10, "big_blind": 20, "ante": 0, "duration_seconds": 900}],
+        late_registration_end_level_number=1,
+    )
+    assert tournament.paused_remaining_seconds is None
+
+    state = tournament_state(session, tournament.id)
+
+    assert state["status"] == TournamentStatus.DRAFT.value
+    assert state["remaining_seconds"] == 900
 
 
 def test_start_pause_resume_and_next_level(session: Session) -> None:

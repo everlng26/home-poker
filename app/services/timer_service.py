@@ -64,7 +64,10 @@ class TimerService:
     def remaining_seconds(tournament: Tournament, level: BlindLevel, now: datetime | None = None) -> int:
         now = as_utc(now or utc_now())
         if tournament.timer_status == TimerStatus.PAUSED:
-            return max(0, tournament.paused_remaining_seconds or 0)
+            # Не начатый уровень хранится без остатка: resume и ±60 считают его полным, табло тоже.
+            if tournament.paused_remaining_seconds is None:
+                return level.duration_seconds
+            return max(0, tournament.paused_remaining_seconds)
         if tournament.timer_status != TimerStatus.RUNNING or tournament.level_started_at is None:
             return level.duration_seconds
         started_at = as_utc(tournament.level_started_at)
