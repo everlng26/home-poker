@@ -1,15 +1,69 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="card admin-page" id="admin" data-tournament-id="{{ tournament_id }}">
-  <div class="admin-actions" aria-label="Управление страницей"><a class="display-action" href="/display/{{ tournament_id }}" title="Открыть экран турнира" aria-label="Открыть экран турнира"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></a></div>
-  <header class="admin-header"><div><p class="eyebrow">Администрирование турнира</p><h1 id="admin-title">Турнир</h1><div class="admin-status-row"><p id="connection">Подключение…</p><span id="freeroll-badge" class="freeroll-badge" hidden>Фриролл</span></div></div><div class="admin-header-tools"><div class="admin-qr-box"><img id="admin-qr" src="/api/v1/tournaments/{{ tournament_id }}/qr/admin" alt="QR-код для открытия админки на телефоне"><span>Открыть админку<br>на телефоне</span></div><div class="admin-clock"><span>Время уровня</span><strong id="time">--:--</strong></div></div></header>
-  <section class="admin-live-panel"><div><p id="level"></p><p id="metrics"></p><p id="message" class="error"></p></div><div class="controls"><button data-action="pause">Пауза</button><button data-action="resume">Продолжить</button><button data-action="previous">Предыдущий уровень</button><button data-action="next">Следующий уровень</button><button data-action="add_60">+60 секунд</button><button data-action="subtract_60">−60 секунд</button><button id="undo" class="secondary-action">Отменить действие</button></div></section>
-  <section class="admin-section admin-players"><div class="admin-section-heading"><div><p class="eyebrow">Игроки</p></div><span class="admin-section-count" id="player-count">0</span></div><form id="player-form"><label>Добавить игрока<input name="name" required></label><button>Добавить игрока</button></form><div id="players"></div></section>
-  <section id="admin-payouts" class="admin-section admin-payouts"><div class="admin-section-heading"><div><p class="eyebrow">Выплаты</p><h2>Призовой фонд</h2></div><div class="payout-heading-actions"><span id="payout-status-badge" class="payout-status-badge">Предварительные</span><button id="edit-payouts" class="secondary-action" type="button">Изменить выплаты</button></div></div><div class="payout-overview"><div><span>Основной призовой фонд</span><strong id="admin-prize-pool">—</strong></div><div id="admin-bounty-pool-item" hidden><span>Bounty pool</span><strong id="admin-bounty-pool">—</strong></div><div><span>Статус турнира</span><strong id="admin-payout-stage">Регистрация открыта</strong></div></div><div id="admin-payout-summary" class="admin-payout-summary"></div><p id="admin-payout-warning" class="error"></p><div id="payout-editor" class="admin-payout-editor" hidden><div id="admin-payout-list" class="payout-editor-list"></div><div class="payout-editor-total"><span>Итого</span><strong id="admin-payout-total">—</strong></div><div class="payout-editor-actions"><button id="admin-add-payout" type="button" class="secondary-action">＋ Призовое место</button><button id="save-payouts" type="button">Сохранить выплаты</button></div></div></section>
-  <section class="admin-section admin-structure"><div class="admin-section-heading"><div><p class="eyebrow">Структура уровней</p></div><button id="edit-structure" class="secondary-action" type="button">Изменить структуру</button></div><div id="structure-editor" hidden><p>Соберите структуру как конструктор: перетаскивайте строки мышью или используйте стрелки ↑/↓ на телефоне. Номер пересчитывается автоматически. Время указывается в минутах, анте по умолчанию равен большому блайнду.</p><div class="late-registration-panel"><strong>Поздняя регистрация</strong><label>Заканчивается после уровня №<input id="late-registration-end" type="number" min="1" inputmode="numeric" placeholder="например, 3" required></label><small>Обязательное поле. Если сразу после указанного уровня идёт перерыв, входы доступны до его конца. Затем добавление игрока и re-entry потребуют подтверждения.</small></div><div class="structure-builder-toolbar"><div><strong>Конструктор уровней</strong><small>Уровни и перерывы можно менять местами.</small></div><div class="structure-actions"><button id="add-play" type="button">＋ Уровень</button><button id="add-break" type="button">＋ Перерыв</button></div></div><div class="level-builder-header" aria-hidden="true"><span>№</span><span>Минуты</span><span>SB</span><span>BB</span><span>Ante</span><span>Действия</span></div><div id="level-editor" class="level-builder"></div><div class="structure-summary"><span>Всего элементов: <b id="level-count">0</b></span><span>Общая длительность: <b id="structure-total">00:00</b></span></div><button id="save-levels">Сохранить структуру</button></div></section>
-  <section id="final-results" class="final-results" hidden><div class="final-results-heading"><div><p class="eyebrow">Турнир завершён</p><h2>Итоги турнира</h2></div><span class="final-results-mark" aria-hidden="true">✓</span></div><div id="standings"></div></section>
-  <section class="admin-section admin-events"><div class="admin-section-heading"><div><p class="eyebrow">Журнал действий</p></div></div><div id="events"></div></section>
-  <section class="admin-finish-section"><button id="finish-tournament" class="danger-action" type="button">Завершить турнир</button></section>
+<section class="admin-page" id="admin" data-tournament-id="{{ tournament_id }}">
+  <header class="admin-header">
+    <div>
+      <h1 id="admin-title">Турнир</h1>
+      <div class="admin-status-row"><span id="connection" class="pill connection-pill">Подключение…</span><span id="freeroll-badge" class="pill freeroll-badge" hidden>Фриролл</span></div>
+    </div>
+    <div class="admin-qr-box"><img id="admin-qr" src="/api/v1/tournaments/{{ tournament_id }}/qr/admin" alt="QR-код для открытия админки на телефоне"><span>Открыть админку<br>на телефоне</span></div>
+    <div class="admin-actions" aria-label="Управление страницей"><a class="display-action button icon-button" href="/display/{{ tournament_id }}" title="Открыть табло" aria-label="Открыть табло"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></a></div>
+  </header>
+
+  <section class="admin-remote admin-live-panel" id="admin-remote" aria-label="Таймер">
+    <div class="admin-clock">
+      <p class="admin-level" id="level">Загружаю…</p>
+      <strong id="time">--:--</strong>
+      <p class="admin-metrics" id="metrics"></p>
+    </div>
+    <button id="timer-toggle" class="timer-toggle" type="button" data-action="resume"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Начать турнир</span></button>
+    <div class="controls">
+      <button data-action="previous" type="button" title="Предыдущий уровень"><svg class="icon" aria-hidden="true"><use href="#i-prev"/></svg>Уровень</button>
+      <button data-action="next" type="button" title="Следующий уровень">Уровень<svg class="icon" aria-hidden="true"><use href="#i-next"/></svg></button>
+      <button data-action="subtract_60" type="button" title="Убавить минуту">−1 мин</button>
+      <button data-action="add_60" type="button" title="Добавить минуту">+1 мин</button>
+    </div>
+    <button id="undo" class="admin-undo" type="button"><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg>Отменить последнее действие</button>
+    <p id="message" class="error" role="alert"></p>
+  </section>
+
+  <div class="admin-dock" id="admin-dock" aria-hidden="true">
+    <strong class="admin-dock-time" id="dock-time">--:--</strong>
+    <span class="admin-dock-level" id="dock-level"></span>
+    <button class="dock-toggle" type="button" data-action="resume" tabindex="-1">Старт</button>
+  </div>
+
+  <section class="admin-section admin-players">
+    <div class="admin-section-heading"><h2>Игроки</h2><span class="admin-section-count" id="player-count">0</span></div>
+    <form id="player-form" class="inline-form"><label class="sr-only" for="new-player-name">Имя нового игрока</label><input id="new-player-name" name="name" placeholder="Имя нового игрока" autocomplete="off" required><button type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Добавить</button></form>
+    <div id="players" class="player-list"></div>
+  </section>
+
+  <section id="final-results" class="final-results" hidden><div class="final-results-heading"><div><p class="eyebrow">Турнир завершён</p><h2>Итоги турнира</h2></div><span class="final-results-mark" aria-hidden="true"></span></div><div id="standings"></div></section>
+
+  <section id="admin-payouts" class="admin-section admin-payouts">
+    <div class="admin-section-heading"><h2>Призовой фонд</h2><div class="payout-heading-actions"><span id="payout-status-badge" class="pill payout-status-badge">Предварительные</span><button id="edit-payouts" class="secondary-action" type="button">Изменить выплаты</button></div></div>
+    <div class="payout-overview"><div><span>Основной фонд</span><strong id="admin-prize-pool">—</strong></div><div id="admin-bounty-pool-item" hidden><span>Баунти</span><strong id="admin-bounty-pool">—</strong></div><div><span>Статус</span><strong id="admin-payout-stage">Регистрация открыта</strong></div></div>
+    <div id="admin-payout-summary" class="admin-payout-summary"></div>
+    <p id="admin-payout-warning" class="error"></p>
+    <div id="payout-editor" class="admin-payout-editor" hidden><div id="admin-payout-list" class="payout-editor-list"></div><div class="payout-editor-total"><span>Итого</span><strong id="admin-payout-total">—</strong></div><div class="payout-editor-actions"><button id="admin-add-payout" type="button" class="secondary-action"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Призовое место</button><button id="save-payouts" type="button">Сохранить выплаты</button></div></div>
+  </section>
+
+  <section class="admin-section admin-structure">
+    <div class="admin-section-heading"><h2>Структура</h2><button id="edit-structure" class="secondary-action" type="button">Изменить структуру</button></div>
+    <div id="structure-editor" hidden>
+      <p>Перетаскивайте строки мышью или используйте стрелки на телефоне. Номера уровней пересчитываются сами, время указано в минутах.</p>
+      <div class="late-registration-panel"><strong>Поздняя регистрация</strong><label>Заканчивается после уровня №<input id="late-registration-end" type="number" min="1" inputmode="numeric" placeholder="например, 3" required></label><small>Обязательное поле. Если сразу после указанного уровня идёт перерыв, входы доступны до его конца. Затем добавление игрока и re-entry потребуют подтверждения.</small></div>
+      <div class="structure-builder-toolbar"><div><strong>Конструктор уровней</strong><small>Уровни и перерывы можно менять местами.</small></div><div class="structure-actions"><button id="add-play" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Уровень</button><button id="add-break" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Перерыв</button></div></div>
+      <div class="level-builder-header" aria-hidden="true"><span>№</span><span>Минуты</span><span>SB</span><span>BB</span><span>Ante</span><span></span></div>
+      <div id="level-editor" class="level-builder"></div>
+      <div class="structure-summary"><span>Элементов: <b id="level-count">0</b></span><span>Длительность: <b id="structure-total">00:00</b></span></div>
+      <button id="save-levels">Сохранить структуру</button>
+    </div>
+  </section>
+
+  <section class="admin-section admin-events"><div class="admin-section-heading"><h2>Журнал</h2></div><div id="events" class="event-list"></div></section>
+  <section class="admin-finish-section"><button id="finish-tournament" class="danger-action" type="button"><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg>Завершить турнир</button></section>
 </section>
-<script type="module" src="{{ url_for('static', path='js/admin.js') }}?v=20260813-7"></script>
+<script type="module" src="{{ url_for('static', path='js/admin.js') }}?v=20261028-1"></script>
 {% endblock %}

@@ -1,22 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="card login-page" id="login-page" data-tournament-id="{{ tournament_id }}">
-  <div class="login-mark" aria-hidden="true">
-    <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6.5v5.2c0 4.3 2.9 7.7 7.5 9.3 4.6-1.6 7.5-5 7.5-9.3V6.5L12 3Z"/><path d="m8.8 12 2.1 2.1 4.5-4.5"/></svg>
-  </div>
+<section class="login-page" id="login-page" data-tournament-id="{{ tournament_id }}">
+  <div class="login-mark" aria-hidden="true"><img src="{{ url_for('static', path='img/icon.svg') }}" alt=""></div>
   <div class="login-intro">
-    <p class="eyebrow">Административный доступ</p>
     <h1>Вход в админку</h1>
-    <p>Введите PIN администратора, чтобы управлять турниром и таймером.</p>
+    <p>Введите PIN, заданный при создании турнира, чтобы управлять таймером и игроками.</p>
   </div>
   <form id="login" class="login-form">
     <label class="login-field">PIN администратора
       <input id="pin" inputmode="numeric" type="password" minlength="4" maxlength="12" autocomplete="one-time-code" required autofocus aria-describedby="login-hint login-error">
     </label>
-    <p class="login-hint" id="login-hint">PIN был задан при создании турнира.</p>
+    <p class="login-hint" id="login-hint">Только цифры, от 4 до 12.</p>
     <p class="login-error" id="login-error" role="alert" aria-live="polite"></p>
-    <button class="login-submit" type="submit">Войти в админку</button>
+    <button class="login-submit" type="submit">Войти</button>
   </form>
 </section>
-<script type="module" src="{{ url_for('static', path='js/login.js') }}?v=20260810-1"></script>
+<script type="module" src="{{ url_for('static', path='js/login.js') }}?v=20261028-1"></script>
 {% endblock %}

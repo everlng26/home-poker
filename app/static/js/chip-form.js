@@ -79,7 +79,8 @@ function addRow(item = {value: '', quantity: ''}, focus = false) {
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'chip-remove-denomination';
-  remove.textContent = 'Удалить';
+  remove.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>';
+  remove.title = 'Удалить номинал';
   remove.setAttribute('aria-label', 'Удалить строку номинала');
   remove.addEventListener('click', () => {
     row.remove();

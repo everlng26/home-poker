@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="card chip-form-page" id="chip-form-page" data-chip-set-id="{{ chip_set_id or '' }}">
+<section class="chip-form-page" id="chip-form-page" data-chip-set-id="{{ chip_set_id or '' }}">
   <header class="chip-form-header">
-    <p class="eyebrow">{% if chip_set_id %}Редактирование{% else %}Новый набор{% endif %}</p>
     <h1>{% if chip_set_id %}Изменить набор фишек{% else %}Создать набор фишек{% endif %}</h1>
     <p>Количество означает все физические фишки этого номинала в наборе.</p>
   </header>
@@ -21,7 +20,7 @@
     <section class="chip-form-section">
       <div class="chip-denomination-heading">
         <div><h2>Номиналы</h2><p>Турнирные очки, не денежная стоимость.</p></div>
-        <button id="add-denomination" type="button" class="secondary-action">＋ Добавить номинал</button>
+        <button id="add-denomination" type="button" class="secondary-action"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Номинал</button>
       </div>
       <div class="chip-denomination-labels" aria-hidden="true"><span>Номинал</span><span>Количество</span><span></span></div>
       <div id="chip-denomination-list" class="chip-denomination-editor"></div>
@@ -36,5 +35,5 @@
     </div>
   </form>
 </section>
-<script type="module" src="{{ url_for('static', path='js/chip-form.js') }}?v=20260814-1"></script>
+<script type="module" src="{{ url_for('static', path='js/chip-form.js') }}?v=20261028-1"></script>
 {% endblock %}

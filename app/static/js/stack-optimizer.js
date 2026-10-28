@@ -1,5 +1,6 @@
 const formatNumber = value => new Intl.NumberFormat('ru-RU').format(Number(value || 0));
 
+const candidateLabels = {Comfortable: 'Комфортный', Balanced: 'Сбалансированный', Compact: 'Компактный'};
 const make = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -53,7 +54,7 @@ export function initStackOptimizer(root, options = {}) {
     if (combinedBox.hidden) return;
     const totalChips = denominations.reduce((sum, item) => sum + item.quantity, 0);
     const totalValue = denominations.reduce((sum, item) => sum + item.value * item.quantity, 0);
-    combinedTotals.textContent = formatNumber(totalChips) + ' chips · ' + formatNumber(totalValue) + ' total value';
+    combinedTotals.textContent = formatNumber(totalChips) + ' фишек на ' + formatNumber(totalValue);
     denominationList.replaceChildren();
     denominations.forEach(item => {
       const label = make('label', 'stack-denomination-option');
@@ -81,7 +82,7 @@ export function initStackOptimizer(root, options = {}) {
       input.type = 'checkbox'; input.value = String(chipSet.id); input.checked = chipSet.is_default;
       input.addEventListener('change', () => { renderCombined(); candidates.replaceChildren(); diagnostics.hidden = true; });
       const copy = make('span', 'stack-chip-set-copy');
-      copy.append(make('strong', '', chipSet.name), make('small', '', formatNumber(chipSet.total_chips) + ' chips · ' + formatNumber(chipSet.total_value)));
+      copy.append(make('strong', '', chipSet.name), make('small', '', formatNumber(chipSet.total_chips) + ' фишек на ' + formatNumber(chipSet.total_value)));
       label.append(input, copy); setList.append(label);
     });
     if (!selectedIds().length) setList.querySelector('input').checked = true;
@@ -99,12 +100,13 @@ export function initStackOptimizer(root, options = {}) {
 
   function renderDiagnostics(result) {
     diagnostics.replaceChildren(); diagnostics.hidden = false;
+    diagnostics.classList.toggle('is-problem', !result.feasible);
     const data = result.diagnostics;
     const grid = make('div', 'stack-diagnostic-grid');
     const diagnostic = (label, value) => { const row = make('div'); row.append(make('span', '', label), make('strong', '', value)); grid.append(row); };
     diagnostic('Нужно для стартовой посадки', formatNumber(data.required_initial_value));
     diagnostic('Доступно', formatNumber(data.available_value));
-    diagnostic('Полный worst-case', formatNumber(data.required_full_coverage_value));
+    diagnostic('С запасом на все re-entry', formatNumber(data.required_full_coverage_value));
     if (data.initial_value_shortage) diagnostic('Не хватает', formatNumber(data.initial_value_shortage));
     diagnostics.append(make('strong', '', data.message), grid);
   }
@@ -117,8 +119,8 @@ export function initStackOptimizer(root, options = {}) {
       if (candidate.recommended) card.classList.add('is-recommended');
       const heading = make('header', 'stack-candidate-heading');
       const title = make('div', 'stack-candidate-title');
-      if (candidate.recommended) title.append(make('span', 'stack-recommended-label', 'Recommended'));
-      title.append(make('h3', '', candidate.label));
+      if (candidate.recommended) title.append(make('span', 'stack-recommended-label', 'Рекомендуем'));
+      title.append(make('h3', '', candidateLabels[candidate.label] || candidate.label));
       const badgeText = candidate.coverage_status === 'full' ? 'Полное покрытие' : 'Частичное покрытие';
       heading.append(title, make('span', 'stack-coverage-badge ' + candidate.coverage_status, badgeText));
       const stats = make('div', 'stack-candidate-stats');

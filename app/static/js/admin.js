@@ -1,5 +1,5 @@
-import {command, connectTournament} from './live.js?v=20260809-2';
-import {openDialog, showNotice} from './dialog.js?v=20260813-3';
+import {command as sendCommand, connectTournament} from './live.js?v=20261028-1';
+import {openDialog, showNotice} from './dialog.js?v=20261028-1';
 
 const root = document.querySelector('#admin');
 const id = root.dataset.tournamentId;
@@ -7,6 +7,24 @@ const message = root.querySelector('#message');
 let state;
 let structureDirty = false;
 let payoutDirty = false;
+let online = true;
+let authenticated = false;
+
+// Сессия админки могла истечь (например, после перезапуска или входа в другой турнир): ведём на ввод PIN.
+async function command(url, body) {
+  try {
+    return await sendCommand(url, body);
+  } catch (error) {
+    if (error.code === 'auth_required' || error.status === 403) location.href = '/login/' + id;
+    throw error;
+  }
+}
+
+const plural = (value, one, few, many) => {
+  const mod100 = value % 100; const mod10 = value % 10;
+  return mod100 >= 11 && mod100 <= 14 ? many : mod10 === 1 ? one : mod10 >= 2 && mod10 <= 4 ? few : many;
+};
+const svgIcon = name => '<svg class="icon" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
 
 const clock = seconds => String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
 const say = text => { message.textContent = text || ''; };
@@ -147,7 +165,7 @@ function levelRow(level, number = root.querySelectorAll('.level-edit').length + 
   const head = document.createElement('header');
   head.className = 'level-edit-head';
   const handle = document.createElement('button');
-  handle.type = 'button'; handle.className = 'drag-handle'; handle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h14"/></svg>'; handle.title = 'Перетащить уровень'; handle.setAttribute('aria-label', 'Перетащить уровень');
+  handle.type = 'button'; handle.className = 'drag-handle'; handle.innerHTML = svgIcon('grip'); handle.title = 'Перетащить уровень'; handle.setAttribute('aria-label', 'Перетащить уровень');
   const numberLabel = document.createElement('strong');
   numberLabel.className = 'level-number'; numberLabel.textContent = String(number);
   const kind = document.createElement('span');
@@ -158,12 +176,12 @@ function levelRow(level, number = root.querySelectorAll('.level-edit').length + 
   ordering.className = 'level-order';
   const move = (direction, label, title) => {
     const button = document.createElement('button');
-    button.type = 'button'; button.dataset.move = direction; button.textContent = label; button.title = title; button.setAttribute('aria-label', title); button.onclick = () => moveRow(row, direction === 'up' ? -1 : 1);
+    button.type = 'button'; button.dataset.move = direction; button.innerHTML = svgIcon(label); button.title = title; button.setAttribute('aria-label', title); button.onclick = () => moveRow(row, direction === 'up' ? -1 : 1);
     ordering.append(button);
   };
-  move('up', '↑', 'Переместить выше'); move('down', '↓', 'Переместить ниже');
+  move('up', 'up', 'Переместить выше'); move('down', 'down', 'Переместить ниже');
   const remove = document.createElement('button');
-  remove.type = 'button'; remove.className = 'remove-level'; remove.textContent = 'Удалить';
+  remove.type = 'button'; remove.className = 'remove-level'; remove.innerHTML = svgIcon('trash'); remove.title = 'Удалить строку'; remove.setAttribute('aria-label', 'Удалить строку');
   remove.onclick = () => { if (root.querySelectorAll('.level-edit').length > 1) { row.remove(); markStructureDirty(); renumberLevels(); } else say('Нужен хотя бы один уровень.'); };
   ordering.append(remove);
   row.append(head);
@@ -171,15 +189,16 @@ function levelRow(level, number = root.querySelectorAll('.level-edit').length + 
   const fields = document.createElement('div');
   fields.className = 'level-fields';
   const add = (field, label, value, minimum = 0, type = 'number') => {
-    const wrapper = document.createElement('label'); wrapper.textContent = label;
+    const wrapper = document.createElement('label');
+    const caption = document.createElement('span'); caption.className = 'level-field-label'; caption.textContent = label; wrapper.append(caption);
     const input = document.createElement('input'); input.dataset.field = field; input.type = type; input.inputMode = type === 'number' ? 'numeric' : 'text'; input.min = String(minimum); input.value = String(value ?? '');
     wrapper.append(input); fields.append(wrapper);
   };
-  add('minutes', 'Длительность, минут', Math.round(level.duration_seconds / 60), 1);
+  add('minutes', 'Минуты', Math.round(level.duration_seconds / 60), 1);
   if (level.kind === 'play') {
-    add('sb', 'Малый блайнд', level.small_blind, 1);
-    add('bb', 'Большой блайнд', level.big_blind, 1);
-    if (state.ante_enabled) add('ante', 'Анте', level.ante, 0);
+    add('sb', 'SB', level.small_blind, 1);
+    add('bb', 'BB', level.big_blind, 1);
+    if (state.ante_enabled) add('ante', 'Ante', level.ante, 0);
   }
   row.append(fields, ordering);
   row.addEventListener('input', () => { markStructureDirty(); updateStructureSummary(); });
@@ -225,7 +244,7 @@ const eventMeta = {
   bubble_reached: {label: 'Баббл', tone: 'warning', icon: '♠'},
   itm_reached: {label: 'Все оставшиеся в призах', tone: 'positive', icon: '₽'},
 };
-const playerStatuses = {registered: 'зарегистрирован', active: 'в игре', eliminated: 'вылетел', out: 'аут'};
+const timerStates = {running: 'Идёт', paused: 'Пауза', stopped: 'Остановлен'};
 const payoutStages = {
   registration_open: 'Регистрация открыта',
   registration_closed: 'Регистрация закрыта',
@@ -316,6 +335,7 @@ function drawPayouts() {
   const badge = root.querySelector('#payout-status-badge');
   badge.textContent = state.payouts.status === 'final' ? 'Финальные' : 'Предварительные';
   badge.classList.toggle('is-final', state.payouts.status === 'final');
+  badge.hidden = !state.payouts.configured;
   root.querySelector('#admin-payout-warning').textContent = state.payouts.configuration_error || '';
   renderAdminPayoutSummary();
   const locked = state.payouts.status === 'final' || state.status === 'finished';
@@ -339,7 +359,17 @@ async function loadEvents() {
   const events = await response.json();
   const list = root.querySelector('#events'); list.innerHTML = '';
   if (!events.length) { const empty = document.createElement('p'); empty.className = 'events-empty'; empty.textContent = 'Действий пока нет.'; list.append(empty); return; }
-  events.forEach(event => {
+  // На телефоне журнал быстро становится длиннее всей админки: последние записи сразу, остальные по кнопке.
+  const visibleEvents = 6;
+  let olderEvents;
+  if (events.length > visibleEvents) {
+    olderEvents = document.createElement('details');
+    olderEvents.className = 'event-older';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Показать ещё ' + (events.length - visibleEvents);
+    olderEvents.append(summary);
+  }
+  events.forEach((event, index) => {
     const meta = eventMeta[event.type] || {label: 'Событие турнира', tone: 'neutral', icon: '•'};
     const card = document.createElement('article'); card.className = 'event-item event-' + meta.tone;
     const marker = document.createElement('span'); marker.className = 'event-marker'; marker.textContent = meta.icon; marker.setAttribute('aria-hidden', 'true');
@@ -349,11 +379,13 @@ async function loadEvents() {
     const time = document.createElement('time'); time.className = 'event-time'; time.dateTime = event.created_at; time.textContent = localTime(event.created_at);
     header.append(title, time); body.append(header);
     const details = document.createElement('div'); details.className = 'event-details';
-    if (event.player_name) { const player = document.createElement('span'); player.className = 'event-player'; player.textContent = event.killer_name ? event.killer_name + ' выбивает ' + event.player_name + ' · +' + money(event.bounty_amount_awarded) : event.player_name; details.append(player); }
+    if (event.player_name) { const player = document.createElement('span'); player.className = 'event-player'; player.textContent = event.killer_name ? event.player_name + ' вылетает, баунти забирает ' + event.killer_name + ' (+' + money(event.bounty_amount_awarded) + ')' : event.player_name; details.append(player); }
     if (event.reversed_at) { const reversed = document.createElement('span'); reversed.className = 'event-reversed'; reversed.textContent = 'Отменено'; details.append(reversed); }
     if (details.childElementCount) body.append(details);
-    card.append(marker, body); list.append(card);
+    card.append(marker, body);
+    (index < visibleEvents || !olderEvents ? list : olderEvents).append(card);
   });
+  if (olderEvents) list.append(olderEvents);
 }
 
 function draw(next) {
@@ -363,13 +395,25 @@ function draw(next) {
   root.classList.toggle('tournament-locked', manuallyFinished);
   root.classList.toggle('structure-no-ante', !state.ante_enabled);
   root.querySelector('#admin-title').textContent = state.name;
-  root.querySelector('#connection').textContent = state.timer_status === 'running' ? 'LIVE' : state.timer_status.toUpperCase();
+  document.title = state.name + ' · Админка';
+  renderConnection();
   root.querySelector('#time').textContent = clock(state.remaining_seconds);
+  root.querySelector('#dock-time').textContent = clock(state.remaining_seconds);
   const level = state.current_level;
-  root.querySelector('#level').textContent = level ? (level.kind === 'break' ? 'ПЕРЕРЫВ' : 'Уровень ' + level.level_number + ': ' + level.small_blind + ' / ' + level.big_blind + (state.ante_enabled ? ' · ante ' + level.ante : '')) : 'Нет уровней';
+  const levelLabel = root.querySelector('#level');
+  levelLabel.replaceChildren();
+  if (!level) levelLabel.textContent = 'Нет уровней';
+  else if (level.kind === 'break') levelLabel.textContent = 'Перерыв';
+  else {
+    const blinds = document.createElement('b');
+    blinds.textContent = number(level.small_blind) + ' / ' + number(level.big_blind) + (state.ante_enabled && level.ante ? ', анте ' + number(level.ante) : '');
+    levelLabel.append('Уровень ' + level.level_number + ': ', blinds);
+  }
+  root.querySelector('#dock-level').textContent = levelLabel.textContent;
   const isFreeroll = Boolean(state.is_freeroll);
   root.querySelector('#freeroll-badge').hidden = !isFreeroll;
-  root.querySelector('#metrics').textContent = 'Игроков: ' + state.metrics.active_players + ' · Входов: ' + state.metrics.total_entries + (isFreeroll ? '' : ' · Призовой фонд: ' + money(state.metrics.prize_pool)) + (state.bounty_mode === 'fixed' ? ' · Bounties: ' + money(state.metrics.bounty_pool) : '');
+  drawMetrics(isFreeroll);
+  drawTimerToggle();
   drawPayouts();
   const finishButton = root.querySelector('#finish-tournament');
   finishButton.hidden = manuallyFinished;
@@ -415,16 +459,115 @@ function draw(next) {
       standings.append(row);
     });
   }
-  const players = root.querySelector('#players'); players.innerHTML = '';
-  const playerCount = root.querySelector('#player-count');
-  playerCount.textContent = state.metrics.active_players + '/' + state.metrics.registered_players;
-  playerCount.setAttribute('aria-label', 'Игроки в игре: ' + state.metrics.active_players + ' из ' + state.metrics.registered_players);
-  state.players.forEach(player => { const row = document.createElement('div'); row.className = 'player-row'; const info = document.createElement('div'); info.className = 'player-info'; const name = document.createElement('strong'); name.className = 'player-name'; name.textContent = player.name; const details = document.createElement('div'); details.className = 'player-details'; const status = document.createElement('span'); status.className = 'player-status status-' + player.status; status.textContent = playerStatuses[player.status] || player.status; const entries = document.createElement('span'); entries.className = 'player-entries'; entries.textContent = 'Входов: ' + player.entries_count; details.append(status, entries); if (state.bounty_mode === 'fixed') { const ko = document.createElement('span'); ko.className = 'player-entries'; ko.textContent = 'K.O.: ' + player.ko_count + ' · ' + money(player.bounty_winnings); details.append(ko); } info.append(name, details); row.append(info); if (['active', 'eliminated', 'out'].includes(player.status)) { const actions = document.createElement('div'); actions.className = 'player-actions'; const button = document.createElement('button'); button.textContent = player.status === 'active' ? 'Удалить игрока' : 'Ре-энтри'; button.onclick = () => playerCommand(player.id, player.status === 'active' ? 'eliminate' : 'reenter'); actions.append(button); if (player.status === 'eliminated') { const out = document.createElement('button'); out.textContent = 'Аут'; out.className = 'danger'; out.onclick = () => playerCommand(player.id, 'out'); actions.append(out); } row.append(actions); } players.append(row); });
+  drawPlayers();
   root.querySelectorAll('.player-row button').forEach(button => { button.disabled = manuallyFinished; });
   const structureOpen = !root.querySelector('#structure-editor').hidden;
   if (!structureOpen || state.status === 'finished') drawLevels();
   else { setStructureLocked(false); updateStructureSummary(); }
-  loadEvents();
+  if (authenticated) loadEvents();
+}
+
+function number(value) {
+  return Math.round(Number(value || 0)).toLocaleString('ru-RU');
+}
+
+function renderConnection() {
+  const pill = root.querySelector('#connection');
+  if (!online) {
+    pill.textContent = 'Нет связи, переподключаюсь…';
+    pill.dataset.state = 'offline';
+    return;
+  }
+  if (!state) return;
+  const finished = state.status === 'finished';
+  pill.textContent = finished ? 'Завершён' : state.status === 'draft' ? 'Не начат' : state.current_level?.kind === 'break' && state.timer_status === 'running' ? 'Перерыв' : timerStates[state.timer_status] || state.timer_status;
+  pill.dataset.state = finished ? 'finished' : state.timer_status;
+}
+
+function drawMetrics(isFreeroll) {
+  const metrics = root.querySelector('#metrics');
+  metrics.replaceChildren();
+  const add = (value, label, before = false) => {
+    const item = document.createElement('span');
+    const strong = document.createElement('b'); strong.textContent = value;
+    if (before) item.append(label + ' ', strong); else item.append(strong, ' ' + label);
+    metrics.append(item);
+  };
+  if (state.status === 'draft') add(String(state.metrics.registered_players), plural(state.metrics.registered_players, 'игрок записан', 'игрока записаны', 'игроков записаны'));
+  else add(state.metrics.active_players + ' из ' + state.metrics.registered_players, 'в игре');
+  add(number(state.metrics.total_entries), plural(state.metrics.total_entries, 'вход', 'входа', 'входов'));
+  if (state.metrics.average_stack_bb) add(Math.round(state.metrics.average_stack_bb) + ' BB', 'средний стек', true);
+  if (!isFreeroll) add(money(state.metrics.prize_pool), 'фонд', true);
+  if (state.bounty_mode === 'fixed') add(money(state.metrics.bounty_pool), 'баунти', true);
+}
+
+// Одна большая кнопка вместо пары «Пауза/Продолжить»: показывает только доступное действие.
+function drawTimerToggle() {
+  const running = state.timer_status === 'running';
+  const action = running ? 'pause' : 'resume';
+  const label = running ? 'Пауза' : state.status === 'draft' ? 'Начать турнир' : 'Продолжить';
+  const toggle = root.querySelector('#timer-toggle');
+  toggle.dataset.action = action;
+  toggle.innerHTML = svgIcon(running ? 'pause' : 'play') + '<span>' + label + '</span>';
+  toggle.hidden = state.status === 'finished';
+  const dockToggle = root.querySelector('.dock-toggle');
+  dockToggle.dataset.action = action;
+  dockToggle.innerHTML = svgIcon(running ? 'pause' : 'play') + '<span>' + (running ? 'Пауза' : 'Старт') + '</span>';
+  dockToggle.hidden = state.status === 'finished';
+  root.classList.toggle('is-paused', !running);
+}
+
+function playerRow(player) {
+  const row = document.createElement('div');
+  row.className = 'player-row is-' + player.status;
+  const info = document.createElement('div'); info.className = 'player-info';
+  const name = document.createElement('strong'); name.className = 'player-name'; name.textContent = player.name;
+  const details = document.createElement('div'); details.className = 'player-details';
+  const detail = (text, className = '') => { const item = document.createElement('span'); item.className = className; item.textContent = text; details.append(item); };
+  detail(player.entries_count + ' ' + plural(player.entries_count, 'вход', 'входа', 'входов'), 'player-entries');
+  if (player.status === 'eliminated' && player.elimination_place) detail(player.elimination_place + ' место');
+  if (player.status === 'out') detail(player.elimination_place ? 'аут, ' + player.elimination_place + ' место' : 'аут');
+  if (state.bounty_mode === 'fixed' && player.ko_count) detail(player.ko_count + ' K.O., +' + money(player.bounty_winnings), 'player-ko');
+  info.append(name, details);
+  row.append(info);
+  const actions = document.createElement('div'); actions.className = 'player-actions';
+  const action = (label, className, handler) => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = className; button.textContent = label; button.onclick = handler; actions.append(button);
+  };
+  if (player.status === 'active') action('Вылет', 'player-bust', () => playerCommand(player.id, 'eliminate'));
+  if (player.status === 'eliminated') {
+    action('Аут', 'player-out', () => playerCommand(player.id, 'out'));
+    action('Ре-энтри', 'player-reentry', () => playerCommand(player.id, 'reenter'));
+  }
+  if (player.status === 'out') action('Ре-энтри', 'secondary-action player-reentry', () => playerCommand(player.id, 'reenter'));
+  if (actions.childElementCount) row.append(actions);
+  return row;
+}
+
+// Сначала те, кто за столом, затем вылетевшие (их можно вернуть через re-entry), в конце окончательный аут.
+function drawPlayers() {
+  const players = root.querySelector('#players');
+  players.replaceChildren();
+  const playerCount = root.querySelector('#player-count');
+  playerCount.textContent = state.status === 'draft' ? String(state.metrics.registered_players) : state.metrics.active_players + ' из ' + state.metrics.registered_players;
+  playerCount.setAttribute('aria-label', 'Игроки в игре: ' + state.metrics.active_players + ' из ' + state.metrics.registered_players);
+  const byPlace = (left, right) => (left.elimination_place || 0) - (right.elimination_place || 0);
+  const groups = [
+    ['За столом', state.players.filter(player => player.status === 'active' || player.status === 'registered')],
+    ['Вылетели', state.players.filter(player => player.status === 'eliminated').sort(byPlace)],
+    ['Аут', state.players.filter(player => player.status === 'out').sort(byPlace)],
+  ].filter(([, items]) => items.length);
+  groups.forEach(([label, items]) => {
+    if (groups.length > 1) {
+      const heading = document.createElement('p'); heading.className = 'player-group-label'; heading.textContent = label + ': ' + items.length;
+      players.append(heading);
+    }
+    items.forEach(player => players.append(playerRow(player)));
+  });
+  if (!state.players.length) {
+    const empty = document.createElement('p'); empty.className = 'create-empty'; empty.textContent = 'Игроков пока нет. Добавьте первого через поле выше.';
+    players.append(empty);
+  }
 }
 
 async function refresh() { const response = await fetch('/api/v1/tournaments/' + id + '/state'); draw(await response.json()); }
@@ -436,9 +579,9 @@ async function playerCommand(entry, action, allowWarnings = false) {
       const killerOptions = state.players.filter(player => player.status === 'active' && player.id !== entry);
       const killer = await openDialog({
         tone: 'danger',
-        eyebrow: 'Bounty · вылетел ' + playerName,
-        title: 'Кто совершил K.O.?',
-        message: 'Выберите игрока, который выбил ' + playerName + '.',
+        eyebrow: 'Вылет: ' + playerName,
+        title: 'Кто забирает баунти?',
+        message: 'Выберите игрока, который сделал K.O.',
         confirmLabel: 'Подтвердить вылет',
         select: {label: 'Выбил', placeholder: 'Выберите игрока', options: killerOptions.map(player => ({value: String(player.id), label: player.name}))},
         icon: 'player',
@@ -450,10 +593,10 @@ async function playerCommand(entry, action, allowWarnings = false) {
     }
     const confirmed = await openDialog({
       tone: 'danger',
-      eyebrow: 'Игроки',
-      title: 'Удалить игрока из игры?',
-      message: playerName + ' будет отмечен как вылетевший. После этого можно будет оформить re-entry или окончательный аут.',
-      confirmLabel: 'Удалить игрока',
+      eyebrow: playerName,
+      title: 'Отметить вылет?',
+      message: 'Игрок попадёт в список вылетевших. Потом можно оформить re-entry или окончательный аут.',
+      confirmLabel: 'Вылет',
       icon: 'player',
     });
     if (!confirmed) return;
@@ -616,5 +759,30 @@ root.querySelector('#save-levels').onclick = async () => {
   } catch (error) { say(error.message); }
 };
 
-connectTournament(id, draw, text => { root.querySelector('#connection').textContent = text; });
-setInterval(() => { if (state?.timer_status === 'running') { state.remaining_seconds = Math.max(0, state.remaining_seconds - 1); root.querySelector('#time').textContent = clock(state.remaining_seconds); } }, 1000);
+connectTournament(id, draw, text => { online = text === 'Онлайн'; renderConnection(); });
+setInterval(() => {
+  if (state?.timer_status !== 'running') return;
+  state.remaining_seconds = Math.max(0, state.remaining_seconds - 1);
+  root.querySelector('#time').textContent = clock(state.remaining_seconds);
+  root.querySelector('#dock-time').textContent = clock(state.remaining_seconds);
+}, 1000);
+
+// Когда большой пульт уходит за верх экрана, сверху появляется короткая панель с часами и паузой.
+const dock = root.querySelector('#admin-dock');
+if ('IntersectionObserver' in window) {
+  new IntersectionObserver(([entry]) => {
+    const visible = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+    dock.classList.toggle('is-visible', visible);
+    dock.setAttribute('aria-hidden', String(!visible));
+    dock.querySelector('button').tabIndex = visible ? 0 : -1;
+  }, {threshold: 0}).observe(root.querySelector('#timer-toggle'));
+}
+
+fetch('/api/v1/tournaments/' + id + '/session')
+  .then(response => response.ok ? response.json() : null)
+  .then(session => {
+    if (session && !session.authenticated) { location.href = '/login/' + id; return; }
+    authenticated = true;
+    if (state) loadEvents();
+  })
+  .catch(() => {});

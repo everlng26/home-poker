@@ -22,13 +22,13 @@ def test_stack_optimizer_standalone_and_tournament_creation_ui() -> None:
     assert 'data-field="max_reentries_per_player"' in page.text
     assert 'data-field="first_small_blind"' in page.text
     assert 'data-action="solve"' in page.text
-    assert "stack-optimizer.js?v=20260814-3" in page.text
+    assert "stack-optimizer.js?v=20261028-1" in page.text
     assert 'href="/stack-optimizer"' in chips_page.text
 
     assert 'id="open-stack-optimizer"' in create_page.text
     assert 'id="create-stack-optimizer"' in create_page.text
     assert "Подобрать фишки" in create_page.text
-    assert "create.js?v=20260816-4" in create_page.text
+    assert "create.js?v=20261028-1" in create_page.text
     assert "Использовать этот вариант" in script.text
     assert "chip_set_ids" in script.text
     assert "excluded_denominations" in script.text
@@ -45,7 +45,7 @@ def test_stack_optimizer_standalone_and_tournament_creation_ui() -> None:
     assert "response.headers.get('content-type')" in script.text
     assert "План физических фишек" not in create_page.text
     assert "План фишек" in create_page.text
-    assert "Выберите физические наборы" in create_page.text
+    assert "Выберите наборы фишек" in create_page.text
     assert "confirm(" not in script.text
     assert "alert(" not in script.text
     assert "prompt(" not in script.text

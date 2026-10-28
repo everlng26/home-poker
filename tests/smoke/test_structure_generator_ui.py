@@ -20,12 +20,12 @@ def test_structure_generator_standalone_and_creation_integration() -> None:
     assert 'data-field="target_duration_minutes"' in page.text
     assert 'data-field="break_every_levels"' in page.text
     assert 'data-field="chip_denominations"' in page.text
-    assert "structure-generator.js?v=20260816-2" in page.text
+    assert "structure-generator.js?v=20261028-1" in page.text
 
     assert 'id="open-structure-generator"' in create_page.text
     assert 'id="create-structure-generator"' in create_page.text
     assert "Использовать эту структуру" in create_page.text
-    assert "create.js?v=20260816-4" in create_page.text
+    assert "create.js?v=20261028-1" in create_page.text
     assert "structure_generator" not in client.get("/api/v1/structure-presets").text
 
     assert "/api/v1/structure-generator" in script.text

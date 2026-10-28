@@ -2,9 +2,9 @@
 {% block content %}
 <section class="display" id="display" data-tournament-id="{{ tournament_id }}">
   <div class="display-actions" aria-label="Управление экраном">
-    <a class="display-action" href="/login/{{ tournament_id }}" title="Открыть админку" aria-label="Открыть админку"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M8 15v4"/></svg></a>
-    <button class="display-action" id="display-sound" type="button" title="Включить звуки табло" aria-label="Включить звуки табло" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="sound-icon-speaker" d="M5 10v4h3l4 3V7L8 10H5z"/><path class="sound-icon-waves" d="M16 9.5c.8.7 1.2 1.5 1.2 2.5s-.4 1.8-1.2 2.5M18.5 7c1.5 1.3 2.3 3 2.3 5s-.8 3.7-2.3 5"/><path class="sound-icon-muted" d="m4 4 16 16"/></svg></button>
-    <button class="display-action" id="display-activate" type="button" title="Открыть полный экран" aria-label="Открыть полный экран"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M21 16v5h-5"/></svg></button>
+    <a class="display-action" href="/login/{{ tournament_id }}" title="Открыть админку" aria-label="Открыть админку"><svg aria-hidden="true"><use href="#i-sliders"/></svg></a>
+    <button class="display-action" id="display-sound" type="button" title="Включить звуки табло" aria-label="Включить звуки табло" aria-pressed="false"><svg aria-hidden="true"><use class="sound-icon-waves" href="#i-speaker"/><use class="sound-icon-muted" href="#i-speaker-off"/></svg></button>
+    <button class="display-action" id="display-activate" type="button" title="Открыть полный экран" aria-label="Открыть полный экран"><svg aria-hidden="true"><use href="#i-expand"/></svg></button>
   </div>
   <div id="finish-celebration" class="finish-celebration" aria-hidden="true">
     <div class="finish-celebration-glow"></div>
@@ -22,50 +22,57 @@
   <div class="display-shell">
     <header class="display-header">
       <div class="display-brand"><h1 id="name">Турнир</h1></div>
-      <div class="display-status"><span id="status">ОЖИДАНИЕ</span></div>
-      <time class="display-device-time" id="device-time" aria-label="Текущее время">--:--</time>
+      <div class="display-header-meta">
+        <span class="display-status" id="status">Подключение…</span>
+        <time class="display-device-time" id="device-time" aria-label="Текущее время">--:--</time>
+      </div>
     </header>
     <div class="display-dashboard">
-      <aside class="display-info" aria-label="Показатели турнира">
-        <div class="display-metrics">
-          <p><span>Игроки в игре</span><b id="active-players">—</b></p>
-          <p><span>Всего входов</span><b id="total-entries">—</b></p>
-          <p><span>Средний стек</span><b id="average-stack">—</b></p>
-          <p id="prize-pool-metric"><span>Призовой фонд</span><b id="prize-pool">—</b></p>
-          <p><span>До перерыва</span><b id="break-time">—</b></p>
-        </div>
-        <div id="display-payouts" class="display-prize" hidden><span id="display-paid-places">—</span><div id="display-payout-lines"></div></div>
-        <div id="display-ko-leader" class="display-ko-leader" hidden><span id="display-ko-leader-label">K.O. LEADER</span><strong id="display-ko-leader-value">—</strong></div>
-      </aside>
       <main class="display-main">
         <section class="display-hero">
-          <p class="display-level-label" id="level">Структура загружается…</p>
-          <h2 id="blinds">—</h2>
+          <div class="display-level-row">
+            <p class="display-level-label" id="level">Структура загружается…</p>
+            <span class="timer-card-label" id="timer-label">до конца уровня</span>
+          </div>
           <div class="timer-card">
-            <span class="timer-card-label" id="timer-label">До конца уровня</span>
             <strong id="time">--:--</strong>
             <div class="timer-progress" aria-hidden="true"><span id="timer-progress-bar"></span></div>
           </div>
+          <div class="display-blinds">
+            <span class="display-blinds-label" id="blinds-label">Блайнды</span>
+            <h2 id="blinds">—</h2>
+          </div>
+          <section class="next-level" aria-label="Следующий уровень">
+            <span class="next-level-label" id="next-level-label">Дальше</span>
+            <p id="next-level">—</p>
+          </section>
           <div id="display-admin-qr" class="display-admin-qr" hidden>
             <img src="/api/v1/tournaments/{{ tournament_id }}/qr/admin" alt="QR-код для открытия админки на телефоне">
-            <div><span>Админка на телефоне</span><strong>Отсканируйте перед стартом</strong><small>После запуска QR исчезнет с табло</small></div>
+            <div><span>Админка на телефоне</span><strong>Наведите камеру до старта</strong><small>После запуска турнира код исчезнет с табло.</small></div>
           </div>
         </section>
       </main>
-      <aside class="display-side" aria-label="Все уровни турнира">
-        <div class="display-side-heading">Уровни</div>
+      <aside class="display-side" aria-label="Показатели и структура турнира">
+        <div class="display-info">
+          <div class="display-metrics">
+            <p><span>Игроки</span><b id="active-players">—</b></p>
+            <p><span>Входы</span><b id="total-entries">—</b></p>
+            <p><span>Средний стек</span><b id="average-stack">—</b></p>
+            <p id="prize-pool-metric"><span>Призовой фонд</span><b id="prize-pool">—</b></p>
+            <p><span>До перерыва</span><b id="break-time">—</b></p>
+          </div>
+          <div id="display-payouts" class="display-prize" hidden><span id="display-paid-places">—</span><div id="display-payout-lines"></div></div>
+          <div id="display-ko-leader" class="display-ko-leader" hidden><span id="display-ko-leader-label">Больше всех K.O.</span><strong id="display-ko-leader-value">—</strong></div>
+        </div>
+        <div class="display-side-heading">Структура</div>
         <div id="upcoming-levels" class="upcoming-levels"></div>
       </aside>
     </div>
-    <section class="next-level" aria-label="Следующий уровень">
-      <span class="next-level-label">Следующий уровень</span>
-      <p id="next-level">—</p>
-    </section>
     <section id="final-results" class="final-results display-final-results" hidden>
       <header class="display-results-heading">
         <div>
           <p class="eyebrow">Турнир завершён</p>
-          <h2>Итоги турнира</h2>
+          <h2 id="display-results-title">Итоги</h2>
         </div>
         <div class="display-winner-summary">
           <span>Победитель</span>
@@ -82,5 +89,5 @@
     </section>
   </div>
 </section>
-<script type="module" src="{{ url_for('static', path='js/display.js') }}?v=20260813-5"></script>
+<script type="module" src="{{ url_for('static', path='js/display.js') }}?v=20261028-1"></script>
 {% endblock %}

@@ -1,7 +1,9 @@
-import {initStackOptimizer} from './stack-optimizer.js?v=20260814-3';
-import {initStructureGenerator} from './structure-generator.js?v=20260816-2';
-import {initAutoTournamentBuilder} from './auto-tournament-builder.js?v=20260816-1';
-import {openDialog} from './dialog.js?v=20260813-3';
+import {initStackOptimizer} from './stack-optimizer.js?v=20261028-1';
+import {initStructureGenerator} from './structure-generator.js?v=20261028-1';
+import {initAutoTournamentBuilder} from './auto-tournament-builder.js?v=20261028-1';
+
+const svgIcon = name => '<svg class="icon" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
+import {openDialog} from './dialog.js?v=20261028-1';
 
 const form = document.querySelector('#new-tournament');
 const error = document.querySelector('#error');
@@ -139,10 +141,10 @@ function updateBounty() {
   const buyInValue = Number(buyIn.value);
   const bountyValue = Number(bountyAmount.value);
   const valid = Number.isInteger(buyInValue) && Number.isInteger(bountyValue) && bountyValue > 0 && bountyValue < buyInValue;
-  bountyAmount.setCustomValidity(valid ? '' : 'Bounty должен быть больше нуля и меньше общего бай-ина.');
+  bountyAmount.setCustomValidity(valid ? '' : 'Баунти должен быть больше нуля и меньше общего бай-ина.');
   bountyPreview.textContent = valid
-    ? (buyInValue - bountyValue).toLocaleString('ru-RU') + ' ₽ в основной призовой фонд · ' + bountyValue.toLocaleString('ru-RU') + ' ₽ bounty за entry'
-    : 'Bounty должен быть меньше общего бай-ина.';
+    ? (buyInValue - bountyValue).toLocaleString('ru-RU') + ' ₽ в основной призовой фонд, ' + bountyValue.toLocaleString('ru-RU') + ' ₽ баунти за вход'
+    : 'Баунти должен быть меньше общего бай-ина.';
   return valid;
 }
 
@@ -188,7 +190,7 @@ function renderPayouts() {
     input.addEventListener('input', updatePayoutTotal);
     field.append(input, suffix);
     const remove = document.createElement('button');
-    remove.type = 'button'; remove.className = 'secondary-action payout-remove'; remove.textContent = 'Удалить';
+    remove.type = 'button'; remove.className = 'secondary-action payout-remove'; remove.innerHTML = svgIcon('trash'); remove.title = 'Убрать ' + (index + 1) + ' место'; remove.setAttribute('aria-label', remove.title);
     remove.disabled = payoutPercentages.length === 1;
     remove.onclick = () => {
       payoutPercentages = readPayoutPercentages();
@@ -308,7 +310,7 @@ function bindDrag(row, handle) {
 
 function addField(container, field, label, value, min = 0) {
   const wrapper = document.createElement('label');
-  wrapper.textContent = label;
+  const caption = document.createElement('span'); caption.className = 'level-field-label'; caption.textContent = label; wrapper.append(caption);
   const input = document.createElement('input');
   input.type = 'number'; input.inputMode = 'numeric'; input.min = String(min); input.value = String(value ?? ''); input.dataset.field = field;
   wrapper.append(input); container.append(wrapper);
@@ -320,27 +322,27 @@ function createLevelRow(level) {
   row.dataset.ante = String(level.ante ?? level.big_blind ?? 0);
   const heading = document.createElement('header'); heading.className = 'level-edit-head';
   const handle = document.createElement('span');
-  handle.className = 'drag-handle'; handle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h14"/></svg>'; handle.title = 'Перетащить уровень'; handle.setAttribute('aria-hidden', 'true');
+  handle.className = 'drag-handle'; handle.innerHTML = svgIcon('grip'); handle.title = 'Перетащить уровень'; handle.setAttribute('aria-hidden', 'true');
   const number = document.createElement('strong'); number.className = 'level-number';
   const kind = document.createElement('span'); kind.className = 'level-kind';
   heading.append(handle, number, kind);
   const fields = document.createElement('div'); fields.className = 'level-fields';
-  addField(fields, 'minutes', 'Длительность, минут', minutes(level.duration_seconds), 1);
+  addField(fields, 'minutes', 'Минуты', minutes(level.duration_seconds), 1);
   if (level.kind === 'play') {
-    addField(fields, 'sb', 'Малый блайнд', level.small_blind, 1);
-    addField(fields, 'bb', 'Большой блайнд', level.big_blind, 1);
-    if (!noAnte.checked) addField(fields, 'ante', 'Анте', row.dataset.ante, 0);
+    addField(fields, 'sb', 'SB', level.small_blind, 1);
+    addField(fields, 'bb', 'BB', level.big_blind, 1);
+    if (!noAnte.checked) addField(fields, 'ante', 'Ante', row.dataset.ante, 0);
   }
   const ordering = document.createElement('div'); ordering.className = 'level-order';
   const move = (direction, label, title) => {
     const button = document.createElement('button');
-    button.type = 'button'; button.dataset.move = direction; button.textContent = label; button.title = title; button.setAttribute('aria-label', title); button.onclick = () => moveRow(row, direction === 'up' ? -1 : 1);
+    button.type = 'button'; button.dataset.move = direction; button.innerHTML = svgIcon(label); button.title = title; button.setAttribute('aria-label', title); button.onclick = () => moveRow(row, direction === 'up' ? -1 : 1);
     ordering.append(button);
   };
-  move('up', '↑', 'Переместить выше');
-  move('down', '↓', 'Переместить ниже');
+  move('up', 'up', 'Переместить выше');
+  move('down', 'down', 'Переместить ниже');
   const remove = document.createElement('button');
-  remove.type = 'button'; remove.className = 'remove-level'; remove.textContent = 'Удалить';
+  remove.type = 'button'; remove.className = 'remove-level'; remove.innerHTML = svgIcon('trash'); remove.title = 'Удалить строку'; remove.setAttribute('aria-label', 'Удалить строку');
   remove.onclick = () => { if (editor.querySelectorAll('.level-edit').length > 1) { row.remove(); renumber(); markStructureEdited(); } else showError('Нужен хотя бы один уровень.'); };
   ordering.append(remove);
   row.append(heading, fields, ordering);
@@ -375,7 +377,7 @@ function renderPlayers() {
   playerNames.forEach((name, index) => {
     const row = document.createElement('div'); row.className = 'create-player-row';
     const label = document.createElement('span'); label.textContent = name;
-    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'secondary-action'; remove.textContent = 'Убрать';
+    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'secondary-action'; remove.innerHTML = svgIcon('close'); remove.title = 'Убрать ' + name; remove.setAttribute('aria-label', 'Убрать ' + name);
     remove.onclick = () => { playerNames.splice(index, 1); renderPlayers(); };
     row.append(label, remove); playerList.append(row);
   });
@@ -481,7 +483,7 @@ const optimizer = initStackOptimizer(optimizerDialog.querySelector('[data-stack-
       ...selection.initial_distribution,
       ...candidate.reentry_pack,
     ].filter(item => item.quantity > 0).map(item => item.value))].sort((left, right) => left - right);
-    document.querySelector('#create-chip-plan-summary').textContent = candidate.label + ': ' + candidate.covered_reentries + ' / ' + candidate.max_allowed_reentries + ' re-entry обеспечено. Inventory не изменяется.';
+    document.querySelector('#create-chip-plan-summary').textContent = candidate.label + ': ' + candidate.covered_reentries + ' / ' + candidate.max_allowed_reentries + ' re-entry обеспечено. Наборы фишек не меняются.';
     optimizerDialog.close();
     if (appliedAutoContext) {
       appliedAutoContext.chip_denominations = appliedChipPlanDenominations;
@@ -523,7 +525,7 @@ const structureGenerator = initStructureGenerator(structureGeneratorDialog.query
       refreshAutoDraftDiagnostics();
     }
     const summary = result.summary;
-    document.querySelector('#create-structure-generator-summary').textContent = 'Цель ' + Math.round(summary.target_duration_seconds / 60) + ' мин · окно уровней ' + summary.finish_window.from_level + '–' + summary.finish_window.to_level + ' · буфер ' + summary.extension_levels + ' уровня.';
+    document.querySelector('#create-structure-generator-summary').textContent = 'Цель ' + Math.round(summary.target_duration_seconds / 60) + ' мин, окончание на уровнях ' + summary.finish_window.from_level + '-' + summary.finish_window.to_level + ', запас ' + summary.extension_levels + ' уровня.';
     const lateRegistrationLevel = Number(lateRegistrationEnd.value);
     const playCount = readLevels().filter(level => level.kind === 'play').length;
     if (lateRegistrationEnd.value !== '' && lateRegistrationLevel > playCount) {
@@ -580,8 +582,8 @@ const autoBuilder = initAutoTournamentBuilder(autoBuilderDialog.querySelector('[
       target_duration_minutes: plan.target_duration_minutes,
       chip_denominations: appliedChipPlanDenominations,
     };
-    document.querySelector('#create-chip-plan-summary').textContent = plan.label + ': ' + plan.reentry_coverage.covered + ' / ' + plan.reentry_coverage.maximum + ' re-entry обеспечено. Inventory не изменяется.';
-    document.querySelector('#create-structure-generator-summary').textContent = 'Auto Builder: ' + plan.starting_stack.toLocaleString('ru-RU') + ' · ' + plan.first_small_blind.toLocaleString('ru-RU') + '/' + plan.first_big_blind.toLocaleString('ru-RU') + ' · ' + plan.level_duration_minutes + ' мин · ориентировочное окно ' + formatDraftDuration(plan.finish_window.from_seconds) + '–' + formatDraftDuration(plan.finish_window.to_seconds).slice(1) + '.';
+    document.querySelector('#create-chip-plan-summary').textContent = plan.label + ': ' + plan.reentry_coverage.covered + ' / ' + plan.reentry_coverage.maximum + ' re-entry обеспечено. Наборы фишек не меняются.';
+    document.querySelector('#create-structure-generator-summary').textContent = 'Автоподбор: стек ' + plan.starting_stack.toLocaleString('ru-RU') + ', первый уровень ' + plan.first_small_blind.toLocaleString('ru-RU') + ' / ' + plan.first_big_blind.toLocaleString('ru-RU') + ', уровни по ' + plan.level_duration_minutes + ' мин, ориентировочно ' + formatDraftDuration(plan.finish_window.from_seconds) + '–' + formatDraftDuration(plan.finish_window.to_seconds).slice(1) + '.';
     document.querySelector('#open-auto-tournament-builder').textContent = 'Сгенерировать заново';
     autoBuilderDialog.close();
     refreshAutoDraftDiagnostics();

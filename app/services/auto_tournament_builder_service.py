@@ -277,13 +277,13 @@ class AutoTournamentBuilderService:
     def _expected_reentries(*, players: int, max_reentries_per_player: int) -> tuple[int, str]:
         maximum = players * max_reentries_per_player
         if maximum == 0:
-            return 0, "Re-entry отключены правилом турнира; planned forecast равен нулю."
+            return 0, "Re-entry запрещены правилами турнира, поэтому прогноз длительности их не учитывает."
         percentage = min(50, 25 + 10 * min(max_reentries_per_player, 3))
         expected = min(maximum, (players * percentage + 99) // 100)
         return (
             expected,
-            f"Для duration model используется conservative forecast {percentage}% от planned players "
-            f"({expected}), а не теоретический максимум {maximum}.",
+            f"Для прогноза длительности взято {expected} re-entry ({percentage}% от числа игроков), "
+            f"а не теоретический максимум {maximum}.",
         )
 
     @classmethod

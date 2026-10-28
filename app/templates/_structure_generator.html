@@ -1,6 +1,6 @@
 <section class="structure-generator" data-structure-generator{% if generator_auto %} data-structure-generator-auto{% endif %}>
   <header class="structure-generator-heading">
-    <div><p class="eyebrow">Tournament planner</p><h2>Генератор структуры</h2></div>
+    <div><h2>Генератор структуры</h2></div>
     {% if generator_dialog %}<button type="button" class="secondary-action structure-generator-close" data-action="close">Закрыть</button>{% endif %}
   </header>
   <p class="structure-generator-intro">Задайте желаемый темп турнира. Генератор предложит редактируемую структуру, но фактическое время окончания всегда зависит от игры.</p>
@@ -13,20 +13,20 @@
     <label>Первый BB<input data-field="first_big_blind" type="number" min="2" inputmode="numeric" value="200" required></label>
     <label>Длительность уровня, минут<input data-field="level_duration_minutes" type="number" min="1" inputmode="numeric" value="15" required></label>
     <label>Целевая продолжительность, минут<input data-field="target_duration_minutes" type="number" min="1" inputmode="numeric" value="300" required></label>
-    <label>Анте<select data-field="ante_mode"><option value="big_blind" selected>BB Ante</option><option value="none">Без анте</option></select></label>
-    <label>Старт BB Ante<select data-field="ante_start_mode"><option value="auto" selected>Auto</option><option value="manual">Указать уровень</option></select></label>
-    <label data-role="manual-ante-level" hidden>BB Ante с уровня<input data-field="ante_start_level" type="number" min="1" inputmode="numeric" value="3"></label>
-    <label>Перерыв каждые N уровней <span>0 — без перерывов</span><input data-field="break_every_levels" type="number" min="0" inputmode="numeric" value="4" required></label>
+    <label>Анте<select data-field="ante_mode"><option value="big_blind" selected>BB-анте</option><option value="none">Без анте</option></select></label>
+    <label>Начало BB-анте<select data-field="ante_start_mode"><option value="auto" selected>Автоматически</option><option value="manual">Указать уровень</option></select></label>
+    <label data-role="manual-ante-level" hidden>BB-анте с уровня<input data-field="ante_start_level" type="number" min="1" inputmode="numeric" value="3"></label>
+    <label>Перерыв каждые N уровней <span>0, если без перерывов</span><input data-field="break_every_levels" type="number" min="0" inputmode="numeric" value="4" required></label>
     <label>Длительность перерыва, минут<input data-field="break_duration_minutes" type="number" min="1" inputmode="numeric" value="10" required></label>
     <label class="structure-denominations">Номиналы фишек <span>необязательно, через запятую</span><input data-field="chip_denominations" type="text" inputmode="numeric" placeholder="25, 100, 500, 1000"></label>
   </section>
-  <p class="structure-chip-context" data-role="chip-context">Без номиналов используется универсальная poker-friendly ladder.</p>
+  <p class="structure-chip-context" data-role="chip-context">Без номиналов используется стандартная лестница блайндов.</p>
   <button type="button" class="structure-generate" data-action="generate">Сгенерировать структуру</button>
   <p class="error" data-role="error" aria-live="polite"></p>
   <section class="structure-generator-result" data-role="result" hidden>
     <div class="structure-generator-summary" data-role="summary"></div>
     <div class="structure-generator-diagnostics" data-role="diagnostics" hidden></div>
-    <div class="structure-generator-preview-heading"><div><strong>Предложенная структура</strong><small>Это preview. После применения уровни можно свободно менять.</small></div></div>
+    <div class="structure-generator-preview-heading"><div><strong>Предложенная структура</strong><small>Это черновик. После применения уровни можно свободно менять.</small></div></div>
     <div class="structure-generator-levels" data-role="levels"></div>
     {% if generator_dialog %}<button type="button" class="structure-apply" data-action="apply">Использовать эту структуру</button>{% endif %}
   </section>

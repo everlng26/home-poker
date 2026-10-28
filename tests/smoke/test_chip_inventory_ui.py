@@ -17,7 +17,7 @@ def test_chip_inventory_pages_and_mobile_ui_assets() -> None:
     assert "Фишки" in list_page.text
     assert 'id="chip-set-list"' in list_page.text
     assert "/chips/new" in list_page.text
-    assert "chips.js?v=20260814-1" in list_page.text
+    assert "chips.js?v=20261028-1" in list_page.text
 
     assert create_page.status_code == 200
     assert 'data-chip-set-id=""' in create_page.text
@@ -27,7 +27,7 @@ def test_chip_inventory_pages_and_mobile_ui_assets() -> None:
     assert 'id="add-denomination"' in create_page.text
     assert 'id="chip-total-count"' in create_page.text
     assert 'id="chip-total-value"' in create_page.text
-    assert "chip-form.js?v=20260814-1" in create_page.text
+    assert "chip-form.js?v=20261028-1" in create_page.text
 
     assert edit_page.status_code == 200
     assert 'data-chip-set-id="7"' in edit_page.text

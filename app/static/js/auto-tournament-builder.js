@@ -1,5 +1,9 @@
 const formatNumber = value => new Intl.NumberFormat('ru-RU').format(Number(value || 0));
 
+const levelsWord = value => {
+  const mod100 = value % 100; const mod10 = value % 10;
+  return mod100 >= 11 && mod100 <= 14 ? 'уровней' : mod10 === 1 ? 'уровень' : mod10 >= 2 && mod10 <= 4 ? 'уровня' : 'уровней';
+};
 const make = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -43,7 +47,7 @@ export function initAutoTournamentBuilder(root, options = {}) {
       const label = make('label', 'auto-builder-chip-set');
       const input = document.createElement('input'); input.type = 'checkbox'; input.value = String(chipSet.id); input.checked = chipSet.is_default;
       const copy = make('span', 'auto-builder-chip-copy');
-      copy.append(make('strong', '', chipSet.name), make('small', '', formatNumber(chipSet.total_chips) + ' chips · ' + formatNumber(chipSet.total_value) + ' value'));
+      copy.append(make('strong', '', chipSet.name), make('small', '', formatNumber(chipSet.total_chips) + ' фишек на ' + formatNumber(chipSet.total_value)));
       label.append(input, copy); setList.append(label);
     });
     if (!selectedIds().length) setList.querySelector('input').checked = true;
@@ -104,21 +108,20 @@ export function initAutoTournamentBuilder(root, options = {}) {
       const card = make('article', 'auto-builder-candidate' + (plan.recommended ? ' is-recommended' : ''));
       const heading = make('header', 'auto-builder-candidate-heading');
       const title = make('div');
-      if (plan.recommended) title.append(make('span', 'auto-builder-recommended', 'Recommended'));
       title.append(make('h3', '', plan.label));
       const coverage = plan.reentry_coverage.status === 'full' ? 'Полное покрытие' : 'Частичное покрытие';
       heading.append(title, make('span', 'stack-coverage-badge ' + plan.reentry_coverage.status, coverage));
       const stats = make('div', 'auto-builder-stats');
       const stat = (label, value) => { const row = make('div'); row.append(make('span', '', label), make('strong', '', value)); stats.append(row); };
-      stat('Starting stack', formatNumber(plan.starting_stack));
+      stat('Стартовый стек', formatNumber(plan.starting_stack));
       stat('Первый уровень', formatNumber(plan.first_small_blind) + ' / ' + formatNumber(plan.first_big_blind));
       stat('Стартовая глубина', formatNumber(plan.starting_depth_bb) + ' BB');
       stat('Уровни', plan.level_duration_minutes + ' мин');
-      stat('Re-entry reserve', plan.reentry_coverage.covered + ' / ' + plan.reentry_coverage.maximum);
+      stat('Запас на re-entry', plan.reentry_coverage.covered + ' из ' + plan.reentry_coverage.maximum);
       stat('Окно окончания', formatDuration(plan.finish_window.from_seconds) + '–' + formatDuration(plan.finish_window.to_seconds).slice(1));
-      stat('BB Ante', plan.ante_start_level ? 'с Level ' + plan.ante_start_level : 'выключено');
-      stat('Перерывы', plan.break_schedule.every_levels ? 'каждые ' + plan.break_schedule.every_levels + ' уровня · ' + plan.break_schedule.duration_minutes + ' мин' : 'без перерывов');
-      card.append(heading, stats, distribution('Стек игрока', plan.stack_distribution_per_player), distribution('Re-entry pack', plan.reentry_pack));
+      stat('BB-анте', plan.ante_start_level ? 'с уровня ' + plan.ante_start_level : 'выключено');
+      stat('Перерывы', plan.break_schedule.every_levels ? 'каждые ' + plan.break_schedule.every_levels + ' ' + levelsWord(plan.break_schedule.every_levels) + ' по ' + plan.break_schedule.duration_minutes + ' мин' : 'без перерывов');
+      card.append(heading, stats, distribution('Стек игрока', plan.stack_distribution_per_player), distribution('Набор для re-entry', plan.reentry_pack));
       if (plan.diagnostics.length) {
         const notes = make('div', 'auto-builder-diagnostics');
         plan.diagnostics.forEach(item => notes.append(make('p', 'structure-diagnostic ' + item.severity, item.message)));

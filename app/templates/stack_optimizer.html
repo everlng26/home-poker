@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card stack-optimizer-page">
+<div class="stack-optimizer-page">
   {% set optimizer_auto = true %}
   {% set optimizer_dialog = false %}
   {% include "_stack_optimizer.html" %}
 </div>
-<script type="module" src="{{ url_for('static', path='js/stack-optimizer.js') }}?v=20260814-3"></script>
+<script type="module" src="{{ url_for('static', path='js/stack-optimizer.js') }}?v=20261028-1"></script>
 {% endblock %}
