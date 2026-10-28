@@ -375,6 +375,7 @@ function nextItems() {
     ? state.levels.slice(current + 1).filter(level => level.kind === 'play')[1]
     : state.levels[current + 1];
   root.querySelector('#next-level-label').textContent = onBreak ? 'Затем' : 'Дальше';
+  root.querySelector('#break-time-label').textContent = onBreak ? 'До следующего перерыва' : 'До перерыва';
   root.querySelector('#next-level').textContent = !next ? 'конец структуры'
     : next.kind === 'break' ? 'перерыв ' + Math.round((next.duration_seconds || 0) / 60) + ' мин'
     : levelText(next);
