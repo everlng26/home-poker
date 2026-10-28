@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.security import hash_pin
 from app.models.enums import TimerStatus, TournamentPlayerStatus, TournamentStatus
-from app.models.tournament import Player, TournamentPlayer
+from app.models.tournament import Player, TournamentEvent, TournamentPlayer
 from app.services import DomainError, EventService, PlayerService, TournamentService
 from app.services.level_service import LevelService
 from app.services.state_service import tournament_state
@@ -206,6 +206,63 @@ def test_elimination_can_be_undone(session: Session) -> None:
     assert entry.status == TournamentPlayerStatus.ACTIVE
     assert entry.elimination_place is None
     assert entry.eliminated_at is None
+
+
+def test_out_then_two_undos_restore_player_without_reentry(session: Session) -> None:
+    tournament = create_tournament(session)
+    players = [PlayerService.create_player(session, name) for name in ("Олег", "Анна", "Борис")]
+    entries = [PlayerService.register_player(session, tournament.id, player.id) for player in players]
+    entry = entries[0]
+
+    PlayerService.eliminate_player(session, entry.id)
+    eliminated_at = entry.eliminated_at
+    PlayerService.mark_out(session, entry.id)
+    out_event = session.scalar(select(TournamentEvent).where(TournamentEvent.event_type == "player_out"))
+    assert out_event is not None and out_event.is_reversible
+    # Старые турниры сохраняли этот тип события без флага обратимости.
+    out_event.is_reversible = False
+    session.commit()
+    out_event_id = out_event.id
+    tournament_id = tournament.id
+    session.rollback()
+
+    EventService.undo_last(session, tournament_id)
+    assert entry.status == TournamentPlayerStatus.ELIMINATED
+    assert entry.eliminated_at == eliminated_at
+    assert session.get(TournamentEvent, out_event_id).reversed_at is not None
+    session.rollback()
+
+    EventService.undo_last(session, tournament_id)
+    assert entry.status == TournamentPlayerStatus.ACTIVE
+    assert entry.entries_count == 1
+    assert entry.elimination_place is None
+    assert entry.eliminated_at is None
+    assert session.scalar(select(func.count()).select_from(TournamentEvent).where(
+        TournamentEvent.tournament_id == tournament.id,
+        TournamentEvent.event_type == "event_reversed",
+    )) == 2
+
+
+def test_undo_out_reopens_automatically_finished_tournament(session: Session) -> None:
+    tournament = create_tournament(session)
+    players = [PlayerService.create_player(session, name) for name in ("Олег", "Анна")]
+    entries = [PlayerService.register_player(session, tournament.id, player.id) for player in players]
+    eliminated, winner = entries
+
+    PlayerService.eliminate_player(session, eliminated.id)
+    PlayerService.mark_out(session, eliminated.id)
+    assert tournament.status == TournamentStatus.FINISHED
+    assert winner.elimination_place == 1
+
+    EventService.undo_last(session, tournament.id)
+    assert tournament.status == TournamentStatus.PAUSED
+    assert tournament.timer_status == TimerStatus.PAUSED
+    assert winner.elimination_place is None
+    assert eliminated.status == TournamentPlayerStatus.ELIMINATED
+
+    EventService.undo_last(session, tournament.id)
+    assert eliminated.status == TournamentPlayerStatus.ACTIVE
+    assert tournament_state(session, tournament.id)["metrics"]["active_players"] == 2
 
 
 def test_reentry_limit_is_enforced(session: Session) -> None:

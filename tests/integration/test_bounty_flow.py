@@ -152,6 +152,24 @@ def test_champion_gets_one_surviving_bounty_without_an_extra_ko(session) -> None
     assert champion_result["net_result"] == 950
 
 
+def test_undo_final_out_revokes_champion_award_then_undo_elimination_revokes_ko(session) -> None:
+    tournament_id, entries = running_bounty_tournament(session, ("A", "B"))
+    winner_id, eliminated_id = entries
+    PlayerService.eliminate_player(session, eliminated_id, killer_tournament_player_id=winner_id)
+    PlayerService.mark_out(session, eliminated_id)
+    assert BountyService.results(session, tournament_id)[winner_id].bounty_winnings == 600
+    session.rollback()
+
+    EventService.undo_last(session, tournament_id)
+    assert session.get(Tournament, tournament_id).status.value == "paused"
+    assert BountyService.results(session, tournament_id)[winner_id].bounty_winnings == 300
+    session.rollback()
+
+    EventService.undo_last(session, tournament_id)
+    assert session.get(TournamentPlayer, eliminated_id).status == TournamentPlayerStatus.ACTIVE
+    assert BountyService.results(session, tournament_id).get(winner_id) is None
+
+
 def test_reentry_tournament_finishes_with_exact_main_and_bounty_accounting(session) -> None:
     tournament_id, entries = running_bounty_tournament(session, ("CHAMP", "A", "B", "C"))
     champion_id, first_id, second_id, third_id = entries

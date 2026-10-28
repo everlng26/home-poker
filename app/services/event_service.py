@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.models.enums import TournamentPlayerStatus
+from app.models.enums import TournamentPlayerStatus, TournamentStatus
 from app.models.tournament import Tournament, TournamentEvent, TournamentPlayer, as_utc, utc_now
 from app.services.errors import DomainError
 
@@ -70,7 +70,10 @@ class EventService:
                 select(TournamentEvent)
                 .where(
                     TournamentEvent.tournament_id == tournament_id,
-                    TournamentEvent.is_reversible.is_(True),
+                    or_(
+                        TournamentEvent.is_reversible.is_(True),
+                        TournamentEvent.event_type == "player_out",
+                    ),
                     TournamentEvent.reversed_at.is_(None),
                 )
                 .order_by(TournamentEvent.id.desc())
@@ -91,6 +94,21 @@ class EventService:
             from app.services.payout_service import PayoutService
 
             before_stage = PayoutService.current_stage(session, tournament)
+            if event.event_type == "player_out" and tournament.status == TournamentStatus.FINISHED:
+                finish_event = session.scalar(
+                    select(TournamentEvent)
+                    .where(
+                        TournamentEvent.tournament_id == tournament_id,
+                        TournamentEvent.event_type == "tournament_finished",
+                        TournamentEvent.id > event.id,
+                    )
+                    .order_by(TournamentEvent.id.desc())
+                )
+                finish_payload = finish_event.payload_json if finish_event is not None else {}
+                if finish_payload.get("winner_tournament_player_id") is not None:
+                    from app.services.timer_service import TimerService
+
+                    TimerService._reopen_automatic_finish(session, tournament, utc_now())
             restore_player_state(entry, before)
             reversal = EventService.record(
                 session,

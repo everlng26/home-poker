@@ -200,7 +200,7 @@ class PlayerService:
 
     @staticmethod
     def mark_out(session: Session, tournament_player_id: int, request_id: str | None = None) -> TournamentPlayer:
-        """Фиксирует окончательный аут без возможности re-entry или отмены."""
+        """Фиксирует аут; ошибочную отметку можно отменить через журнал."""
         with session.begin():
             entry = session.get(TournamentPlayer, tournament_player_id)
             if entry is None:
@@ -220,6 +220,7 @@ class PlayerService:
                 "player_out",
                 {"tournament_player_id": entry.id, "before": before, "after": player_state(entry)},
                 request_id=request_id,
+                reversible=True,
             )
             session.flush()
             TournamentService.finish_if_ready(session, tournament)
